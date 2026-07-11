@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model School {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  phone     String?
+  upiVpa    String? // school's UPI ID for fee collection deep links
+  upiPayee  String? // payee name shown in UPI apps
+  createdAt DateTime @default(now())
+
+  classes  ClassRoom[]
+  students Student[]
+  notices  Notice[]
+  feeHeads FeeHead[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("admin") // admin | teacher
+  createdAt    DateTime @default(now())
+}
+
+model ClassRoom {
+  id       String @id @default(cuid())
+  schoolId String
+  grade    String // "1".."12", "LKG", "UKG", "Nursery"
+  section  String // "A", "B"...
+  school   School @relation(fields: [schoolId], references: [id])
+
+  students    Student[]
+  attendance  AttendanceRecord[]
+  feeInvoices FeeInvoice[]
+
+  @@unique([schoolId, grade, section])
+}
+
+model Student {
+  id            String    @id @default(cuid())
+  schoolId      String
+  classRoomId   String
+  admissionNo   String
+  name          String
+  gender        String?
+  dateOfBirth   DateTime?
+  guardianName  String?
+  guardianPhone String? // primary channel for WhatsApp/SMS
+  language      String    @default("en") // preferred message language: en | hi
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+
+  school     School             @relation(fields: [schoolId], references: [id])
+  classRoom  ClassRoom          @relation(fields: [classRoomId], references: [id])
+  attendance AttendanceRecord[]
+  invoices   FeeInvoice[]
+
+  @@unique([schoolId, admissionNo])
+}
+
+model AttendanceRecord {
+  id          String   @id @default(cuid())
+  studentId   String
+  classRoomId String
+  date        DateTime // normalized to midnight UTC
+  status      String // present | absent | leave
+  createdAt   DateTime @default(now())
+
+  student   Student   @relation(fields: [studentId], references: [id])
+  classRoom ClassRoom @relation(fields: [classRoomId], references: [id])
+
+  @@unique([studentId, date])
+  @@index([classRoomId, date])
+}
+
+model FeeHead {
+  id       String @id @default(cuid())
+  schoolId String
+  name     String // "Tuition Fee Term 1", "Transport Q2"
+  school   School @relation(fields: [schoolId], references: [id])
+
+  invoices FeeInvoice[]
+}
+
+model FeeInvoice {
+  id          String    @id @default(cuid())
+  studentId   String
+  classRoomId String
+  feeHeadId   String
+  amount      Int // paise-free: whole rupees
+  dueDate     DateTime
+  status      String    @default("unpaid") // unpaid | partial | paid
+  createdAt   DateTime  @default(now())
+
+  student   Student   @relation(fields: [studentId], references: [id])
+  classRoom ClassRoom @relation(fields: [classRoomId], references: [id])
+  feeHead   FeeHead   @relation(fields: [feeHeadId], references: [id])
+  payments  Payment[]
+
+  @@index([status, dueDate])
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  invoiceId String
+  amount    Int
+  mode      String // upi | cash | bank | other
+  reference String? // UPI ref / receipt no
+  paidAt    DateTime @default(now())
+
+  invoice FeeInvoice @relation(fields: [invoiceId], references: [id])
+}
+
+model Notice {
+  id        String   @id @default(cuid())
+  schoolId  String
+  title     String
+  body      String
+  audience  String   @default("all") // all | class:<id>
+  createdAt DateTime @default(now())
+
+  school School @relation(fields: [schoolId], references: [id])
+}
+
+// Provider-agnostic message queue. In production a worker drains this via a
+// WhatsApp Business API / SMS provider; the dev provider marks rows sent.
+model OutboxMessage {
+  id        String    @id @default(cuid())
+  channel   String    @default("whatsapp") // whatsapp | sms
+  toPhone   String
+  toName    String?
+  template  String // fee_reminder | absence_alert | notice | receipt
+  body      String // rendered message text
+  status    String    @default("queued") // queued | sent | failed
+  createdAt DateTime  @default(now())
+  sentAt    DateTime?
+
+  @@index([status, createdAt])
+}
