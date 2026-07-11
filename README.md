@@ -14,26 +14,26 @@ India-first School OS. Built on three findings from [our market research](resear
 - **Notices** — school-wide or per-class, broadcast to guardians.
 - **Outbox** — provider-agnostic message queue (dev provider included; a WhatsApp Business API provider drops in behind the same interface).
 
-## Run it locally
-
-You need a Postgres URL — a free [Neon](https://neon.tech) database works (or any local Postgres).
+## Run it locally (zero setup — SQLite)
 
 ```bash
 npm install
-echo 'DATABASE_URL="postgres://…"' > .env
-npx prisma db push        # create tables
+echo 'DATABASE_URL="file:./dev.db"' > .env
+npx prisma db push        # create tables in a local dev.db file
 npm run seed              # demo school + 36 students + invoices
 npm run dev
 ```
 
-Login: `admin@demo.school` / `admin123`
+Open http://localhost:3000 and log in with `admin@demo.school` / `admin123`.
 
 ## Deploy to Vercel
 
-1. Import this repo at [vercel.com/new](https://vercel.com/new) (framework auto-detects as Next.js).
-2. Add a database: in the Vercel project → **Storage** → create a **Neon Postgres** database (or bring any Postgres URL). This sets `DATABASE_URL` automatically.
-3. Add an env var `AUTH_SECRET` set to a long random string (e.g. output of `openssl rand -hex 32`).
-4. Deploy. Then create the tables and demo data from your machine against the production database:
+Vercel's serverless filesystem is ephemeral, so the SQLite file won't work there — switch to Postgres first:
+
+1. In `prisma/schema.prisma`, change `provider = "sqlite"` to `provider = "postgresql"` and commit.
+2. Import the repo at [vercel.com/new](https://vercel.com/new) (auto-detects Next.js).
+3. In the Vercel project → **Storage** → create a **Neon Postgres** database (sets `DATABASE_URL` automatically), and add an `AUTH_SECRET` env var (e.g. `openssl rand -hex 32`).
+4. Deploy, then create tables and demo data against the production database from your machine:
 
 ```bash
 DATABASE_URL="<the vercel/neon url>" npx prisma db push
@@ -44,7 +44,7 @@ DATABASE_URL="<the vercel/neon url>" npm run seed
 
 ## Stack
 
-Next.js (App Router, server actions) · Prisma + Postgres · Tailwind CSS.
+Next.js (App Router, server actions) · Prisma (SQLite for local dev, Postgres for deploys) · Tailwind CSS.
 
 ## Not yet (deliberately)
 
