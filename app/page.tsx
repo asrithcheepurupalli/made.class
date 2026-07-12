@@ -1,91 +1,194 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { currentUserId, roleHome } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
-import { Shell, PageTitle, Stat, Card } from "@/components/shell";
-import { inr, dateHuman, toUTCDate, todayISO } from "@/lib/format";
 
-export default async function Dashboard() {
-  const user = await requireUser();
-  const school = await db.school.findFirst();
-  if (!school) return <p className="p-6">No school configured. Run the seed script.</p>;
+export const dynamic = "force-dynamic";
 
-  const today = toUTCDate(todayISO());
-  const [studentCount, presentToday, absentToday, unpaidAgg, recentPayments, queuedMsgs] =
-    await Promise.all([
-      db.student.count({ where: { active: true } }),
-      db.attendanceRecord.count({ where: { date: today, status: "present" } }),
-      db.attendanceRecord.count({ where: { date: today, status: "absent" } }),
-      db.feeInvoice.findMany({
-        where: { status: { in: ["unpaid", "partial"] } },
-        include: { payments: true },
-      }),
-      db.payment.findMany({
-        orderBy: { paidAt: "desc" },
-        take: 5,
-        include: { invoice: { include: { student: true, feeHead: true } } },
-      }),
-      db.outboxMessage.count({ where: { status: "queued" } }),
-    ]);
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "made.class",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  description:
+    "India-first school operating system: one-tap attendance, transparent UPI fee collection, and every parent reached on WhatsApp — no app for families to install.",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "INR", description: "Pilot program for schools" },
+  audience: { "@type": "Audience", audienceType: "K-12 schools in India" },
+};
 
-  const outstanding = unpaidAgg.reduce(
-    (sum, inv) => sum + inv.amount - inv.payments.reduce((s, p) => s + p.amount, 0),
-    0
-  );
-  const marked = presentToday + absentToday;
+export default async function LandingPage() {
+  // signed-in users go straight to their app
+  const userId = await currentUserId();
+  if (userId) {
+    const user = await db.user.findUnique({ where: { id: userId } });
+    if (user) redirect(roleHome(user.role));
+  }
 
   return (
-    <Shell schoolName={school.name} userName={user.name}>
-      <PageTitle
-        title="Dashboard"
-        subtitle={`${school.name} · ${dateHuman(new Date())}`}
-      />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Active students" value={String(studentCount)} />
-        <Stat
-          label="Attendance today"
-          value={marked === 0 ? "—" : `${Math.round((presentToday / marked) * 100)}%`}
-          hint={marked === 0 ? "Not marked yet" : `${presentToday} present · ${absentToday} absent`}
-        />
-        <Stat label="Fees outstanding" value={inr(outstanding)} hint={`${unpaidAgg.length} open invoices`} />
-        <Stat label="Messages queued" value={String(queuedMsgs)} hint="WhatsApp outbox" />
-      </div>
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
+      <header className="top">
+        <div className="top-in">
+          <span className="wordmark">made<i>.</i>class</span>
+          <nav className="tabs" aria-label="Main">
+            <a href="#features">Features</a>
+            <a href="#why">Why schools switch</a>
+          </nav>
+          <Link href="/login" className="btn quiet" style={{ padding: "7px 16px" }}>
+            Sign in
+          </Link>
+        </div>
+      </header>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-2">
-        <Card>
-          <h2 className="mb-3 text-sm font-semibold text-stone-700">Quick actions</h2>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/attendance" className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">
-              Mark today&apos;s attendance
+      <section className="land-hero">
+        <div className="copy">
+          <h1 className="land-h1">
+            The school OS parents <em>never install</em>.
+          </h1>
+          <p className="land-sub">
+            Attendance in one tap. Fees paid by UPI straight to the school — no gateway, no
+            convenience charges. And every notice, alert and receipt lands where parents already
+            are: WhatsApp.
+          </p>
+          <div className="land-cta">
+            <Link href="/login" className="btn grn" style={{ padding: "12px 22px", fontSize: 15 }}>
+              Try the live demo
             </Link>
-            <Link href="/fees" className="rounded-md border border-stone-300 px-3 py-2 text-sm font-medium hover:bg-stone-50">
-              Collect fees
-            </Link>
-            <Link href="/notices" className="rounded-md border border-stone-300 px-3 py-2 text-sm font-medium hover:bg-stone-50">
-              Send a notice
-            </Link>
+            <a href="#features" className="btn quiet" style={{ padding: "12px 22px", fontSize: 15 }}>
+              See how it works
+            </a>
           </div>
-        </Card>
-        <Card>
-          <h2 className="mb-3 text-sm font-semibold text-stone-700">Recent payments</h2>
-          {recentPayments.length === 0 ? (
-            <p className="text-sm text-stone-500">No payments recorded yet.</p>
-          ) : (
-            <ul className="divide-y divide-stone-100 text-sm">
-              {recentPayments.map((p) => (
-                <li key={p.id} className="flex items-center justify-between py-2">
-                  <div>
-                    <div className="font-medium">{p.invoice.student.name}</div>
-                    <div className="text-xs text-stone-500">
-                      {p.invoice.feeHead.name} · {p.mode.toUpperCase()}
-                    </div>
-                  </div>
-                  <div className="font-semibold text-emerald-700">{inr(p.amount)}</div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      </div>
-    </Shell>
+          <p style={{ color: "var(--faint)", fontSize: 12.5, marginTop: 14 }}>
+            Demo school included — enter as principal, teacher or front desk.
+          </p>
+        </div>
+
+        <div className="phone" aria-label="What a parent sees on WhatsApp">
+          <div className="wa-top">
+            <div className="wa-av">SP</div>
+            <div>
+              <div className="t">Sunrise Public School</div>
+              <div className="s">official account</div>
+            </div>
+          </div>
+          <div className="wa-chat">
+            <span className="wa-day">Monday</span>
+            <div className="bub">
+              प्रिय अभिभावक, आरव शर्मा आज विद्यालय में अनुपस्थित रहे। – Sunrise Public School
+              <span className="time">9:42 am</span>
+            </div>
+            <span className="wa-day">Wednesday</span>
+            <div className="bub">
+              &quot;Tuition Term 1&quot; — ₹5,500 for Aarav, due 20 Jul.
+              <span className="upi">Pay ₹5,500 by UPI</span>
+              <span className="time">8:00 am</span>
+            </div>
+            <span className="wa-day">Today</span>
+            <div className="bub">
+              Received ₹5,500 (Tuition Term 1, Aarav). Ref UPI2467812. Thank you! 🙏
+              <span className="time">10:32 am</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="land-sect" id="features">
+        <h2>Three jobs, done properly.</h2>
+        <p className="sub">
+          Not another ERP with forty modules. The three things a school runs on every single day —
+          made effortless.
+        </p>
+        <div className="land-feats">
+          <div className="feat">
+            <div className="ic">✓</div>
+            <h3>The register, in one tap</h3>
+            <p>
+              Everyone starts present — teachers tap only the exceptions, from their own phone.
+              Absentees&apos; parents get a WhatsApp alert by 9:45 am, not at dinner. The principal
+              sees every class&apos;s register status live.
+            </p>
+          </div>
+          <div className="feat">
+            <div className="ic">₹</div>
+            <h3>Fees without friction</h3>
+            <p>
+              Reminders carry a UPI link that pays the school&apos;s own account directly — zero
+              gateway fees, zero hidden charges, receipt in the same chat. Dues dashboard shows
+              who to call, oldest first.
+            </p>
+          </div>
+          <div className="feat">
+            <div className="ic">◉</div>
+            <h3>Parents on WhatsApp, always</h3>
+            <p>
+              Notices, diary entries, alerts and receipts in each family&apos;s own language —
+              Hindi or English. Read-tracking included. Families install nothing, ever.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="land-sect" id="why">
+        <h2>Why schools switch.</h2>
+        <p className="sub">
+          Most Indian schools still run on paper registers, Excel and unstructured WhatsApp groups —
+          because school software has meant desktop-first ERPs that add work instead of removing it.
+        </p>
+        <div className="land-stats">
+          <div className="lstat">
+            <div className="n">~98%</div>
+            <div className="l">of parent messages read on WhatsApp — vs unopened circulars</div>
+          </div>
+          <div className="lstat">
+            <div className="n">0</div>
+            <div className="l">convenience charges on fee payments — UPI goes direct to the school</div>
+          </div>
+          <div className="lstat">
+            <div className="n">1 tap</div>
+            <div className="l">to mark a full class present and alert every absentee&apos;s parent</div>
+          </div>
+          <div className="lstat">
+            <div className="n">2 roles</div>
+            <div className="l">teachers see their class, the front desk sees money — everyone sees less, does more</div>
+          </div>
+        </div>
+      </section>
+
+      <section className="land-sect">
+        <div
+          style={{
+            background: "var(--green-soft)",
+            borderRadius: 20,
+            padding: "36px 32px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 20,
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <h2 style={{ margin: 0 }}>See it with your own school&apos;s eyes.</h2>
+            <p className="sub" style={{ margin: "8px 0 0" }}>
+              The demo runs a real school — 447 students, live registers, dues, and the WhatsApp
+              outbox. Two minutes, no signup.
+            </p>
+          </div>
+          <Link href="/login" className="btn grn" style={{ padding: "13px 24px", fontSize: 15 }}>
+            Open the demo
+          </Link>
+        </div>
+      </section>
+
+      <footer className="land-foot">
+        <div className="in">
+          <span>
+            made<span style={{ color: "var(--green)" }}>.</span>class — the school OS · Vijayawada, India
+          </span>
+          <span>Built India-first · WhatsApp-native · UPI-direct</span>
+        </div>
+      </footer>
+    </>
   );
 }

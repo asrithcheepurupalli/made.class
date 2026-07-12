@@ -1,47 +1,54 @@
 "use client";
 
 import { useActionState } from "react";
-import { login } from "@/app/actions";
+import { login, loginAsDemo } from "@/app/actions";
 
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState(login, undefined);
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-sm rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
-        <div className="mb-6 text-center">
-          <div className="text-2xl font-bold tracking-tight">
-            made<span className="text-emerald-600">.class</span>
+    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 20 }}>
+      <div style={{ width: "100%", maxWidth: 400 }}>
+        <div style={{ textAlign: "center", marginBottom: 30 }}>
+          <div className="wordmark" style={{ fontSize: 26 }}>
+            made<i>.</i>class
           </div>
-          <p className="mt-1 text-sm text-stone-500">School OS — sign in</p>
+          <p style={{ color: "var(--muted)", fontSize: 13.5, marginTop: 6 }}>
+            Sunrise Public School
+          </p>
         </div>
-        <form action={formAction} className="space-y-3">
-          <input
-            name="email"
-            type="email"
-            required
-            placeholder="Email"
-            className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-          />
-          <input
-            name="password"
-            type="password"
-            required
-            placeholder="Password"
-            className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-          />
-          {state?.error && (
-            <p className="text-sm text-red-600">{state.error}</p>
-          )}
-          <button
-            disabled={pending}
-            className="w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-          >
-            {pending ? "Signing in…" : "Sign in"}
+
+        <form action={loginAsDemo} style={{ display: "grid", gap: 8 }}>
+          <button className="btn" name="role" value="principal" style={{ justifyContent: "center", padding: "12px 18px" }}>
+            Enter as Principal
+          </button>
+          <button className="btn quiet" name="role" value="teacher" style={{ justifyContent: "center", padding: "12px 18px" }}>
+            Enter as Teacher · 8-B
+          </button>
+          <button className="btn quiet" name="role" value="desk" style={{ justifyContent: "center", padding: "12px 18px" }}>
+            Enter as Front desk
           </button>
         </form>
-        <p className="mt-4 text-center text-xs text-stone-400">
-          Demo: admin@demo.school / admin123
-        </p>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "26px 0 14px", color: "var(--faint)", fontSize: 12 }}>
+          <span style={{ flex: 1, borderTop: "1px solid var(--line)" }} />
+          or sign in with email
+          <span style={{ flex: 1, borderTop: "1px solid var(--line)" }} />
+        </div>
+
+        <form action={formAction} className="fld" style={{ display: "grid", gap: 2 }}>
+          <label htmlFor="email">Email</label>
+          <input id="email" name="email" type="email" required placeholder="principal@sunrise.school" />
+          <label htmlFor="password">Password</label>
+          <input id="password" name="password" type="password" required placeholder="demo123" />
+          {state?.error && (
+            <p style={{ color: "var(--red)", fontSize: 13, margin: "10px 0 0" }}>{state.error}</p>
+          )}
+          <div style={{ marginTop: 22 }}>
+            <button className="btn" disabled={pending} style={{ width: "100%", justifyContent: "center", padding: "12px 18px" }}>
+              {pending ? "Signing in…" : "Sign in"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

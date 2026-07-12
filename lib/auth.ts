@@ -52,10 +52,17 @@ export async function currentUserId(): Promise<string | null> {
   return userId;
 }
 
-export async function requireUser() {
+export type Role = "principal" | "teacher" | "desk";
+
+export function roleHome(role: string): string {
+  return role === "teacher" ? "/my-class" : role === "desk" ? "/collect" : "/today";
+}
+
+export async function requireUser(roles?: Role[]) {
   const userId = await currentUserId();
   if (!userId) redirect("/login");
   const user = await db.user.findUnique({ where: { id: userId } });
   if (!user) redirect("/login");
+  if (roles && !roles.includes(user.role as Role)) redirect(roleHome(user.role));
   return user;
 }

@@ -1,51 +1,55 @@
 # made.class — School OS
 
-India-first School OS. Built on three findings from [our market research](research/school-os-market-research.md):
+**The school OS parents never install.** India-first: one-tap attendance, transparent UPI fee collection straight to the school's account, and every parent reached on WhatsApp in their own language.
 
-1. **Teachers drown in duplicate data entry** → enter once, export everywhere.
-2. **Parents live on WhatsApp, not apps** → all parent communication (notices, absence alerts, fee reminders, receipts) goes out as WhatsApp/SMS messages; parents never install anything.
-3. **Fee collection is the school's #1 anxiety** → dues dashboard, one-tap reminder ladders, UPI deep links straight to the school's own VPA — no intermediary, no convenience charges.
+Built on [our market research](research/school-os-market-research.md): every existing school ERP adds work — the winner removes it.
 
-## v0 scope
+## What's here
 
-- **Students & classes** — student records with guardian contacts, per-class rosters, CSV import.
-- **Attendance** — fast tap marking (defaults to present), edit any date, optional WhatsApp absence alerts.
-- **Fees** — fee heads, bulk invoice generation per class, payment recording (UPI/cash/bank), automatic WhatsApp receipts, overdue reminder broadcast with UPI pay links, Hindi/English templates per family.
-- **Notices** — school-wide or per-class, broadcast to guardians.
-- **Outbox** — provider-agnostic message queue (dev provider included; a WhatsApp Business API provider drops in behind the same interface).
+- **Marketing landing page** at `/` with SEO (metadata, OG image, sitemap, robots, JSON-LD).
+- **Role-based app** — each role gets a different product:
+  - **Principal** — Today board (attendance ring, collections, class-register tiles, live feed, needs-you), attendance for any class, fees with reminder broadcast, students, notices, outbox, settings.
+  - **Teacher** — their class register (tap-to-mark pill grid) + class diary to their parents.
+  - **Front desk** — search-first fee collection with instant WhatsApp receipts + dues ladder.
+  - **Parent** — no login, no app: WhatsApp messages (alerts, reminders with UPI links, receipts, notices), Hindi/English per family.
+- **Messaging outbox** — provider-agnostic queue; dev provider included, WhatsApp Business API drops in behind the same interface.
+- **Docs** in [`docs/`](docs/): product & features guide, market case study, technical guide, school one-pager (PDFs).
 
 ## Run it locally (zero setup — SQLite)
 
 ```bash
 npm install
 echo 'DATABASE_URL="file:./dev.db"' > .env
-npx prisma db push        # create tables in a local dev.db file
-npm run seed              # demo school + 36 students + invoices
+npx prisma db push
+npm run seed      # Sunrise Public School: 12 classes, 447 students, invoices, history
 npm run dev
 ```
 
-Open http://localhost:3000 and log in with `admin@demo.school` / `admin123`.
+Open http://localhost:3000 — the landing page — then **Try the live demo**, or sign in:
+
+| Login | Role | Password |
+|---|---|---|
+| principal@sunrise.school | Principal | demo123 |
+| teacher@sunrise.school | Teacher (8-B) | demo123 |
+| desk@sunrise.school | Front desk | demo123 |
+
+The login page also has one-click demo-role buttons (`loginAsDemo` — remove for production).
 
 ## Deploy to Vercel
 
-Vercel's serverless filesystem is ephemeral, so the SQLite file won't work there — switch to Postgres first:
-
 1. In `prisma/schema.prisma`, change `provider = "sqlite"` to `provider = "postgresql"` and commit.
-2. Import the repo at [vercel.com/new](https://vercel.com/new) (auto-detects Next.js).
-3. In the Vercel project → **Storage** → create a **Neon Postgres** database (sets `DATABASE_URL` automatically), and add an `AUTH_SECRET` env var (e.g. `openssl rand -hex 32`).
-4. Deploy, then create tables and demo data against the production database from your machine:
+2. Import the repo at [vercel.com/new](https://vercel.com/new), attach a **Neon Postgres** database (sets `DATABASE_URL`), add `AUTH_SECRET` (e.g. `openssl rand -hex 32`) and optionally `NEXT_PUBLIC_SITE_URL`.
+3. Deploy, then from your machine:
 
 ```bash
-DATABASE_URL="<the vercel/neon url>" npx prisma db push
-DATABASE_URL="<the vercel/neon url>" npm run seed
+DATABASE_URL="<neon url>" npx prisma db push
+DATABASE_URL="<neon url>" npm run seed
 ```
-
-5. Open the deployment URL and sign in with `admin@demo.school` / `admin123`.
 
 ## Stack
 
-Next.js (App Router, server actions) · Prisma (SQLite for local dev, Postgres for deploys) · Tailwind CSS.
+Next.js 16 (App Router, server actions) · Prisma (SQLite dev / Postgres deploy) · Tailwind v4 + hand-rolled design system · self-hosted Fraunces + IBM Plex Sans.
 
-## Not yet (deliberately)
+## Before real production
 
-Report-card generation (board-compliant templates), UDISE+/APAAR-shaped exports, offline-first sync, real WABA provider, multi-school/multi-role auth, Postgres. See the research doc for the roadmap rationale.
+Real session store + MFA, rate limiting, password reset, payments audit log, DPDP consent records, multi-school tenancy, WABA provider — sequenced in [`docs/madeclass-technical-guide.pdf`](docs/madeclass-technical-guide.pdf).
