@@ -1,155 +1,118 @@
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { Shell, PageTitle, Card, Stat, inputCls, btnCls, btnGhostCls } from "@/components/shell";
-import {
-  createFeeHead,
-  generateInvoices,
-  recordPayment,
-  sendFeeReminders,
-} from "@/app/actions";
-import { inr, dateHuman, todayISO } from "@/lib/format";
+import { inr } from "@/lib/format";
+import { Shell, Avatar, Flash } from "@/components/shell";
+import { recordPayment, sendFeeReminders } from "@/app/actions";
 
-export default async function FeesPage() {
-  const user = await requireUser();
-  const school = await db.school.findFirst();
-  if (!school) return null;
+export const metadata = { title: "Fees" };
+export const dynamic = "force-dynamic";
 
-  const [feeHeads, classes, openInvoices, paidThisMonth] = await Promise.all([
-    db.feeHead.findMany({ orderBy: { name: "asc" } }),
-    db.classRoom.findMany({ orderBy: [{ grade: "asc" }, { section: "asc" }] }),
-    db.feeInvoice.findMany({
-      where: { status: { in: ["unpaid", "partial"] } },
-      include: { student: { include: { classRoom: true } }, feeHead: true, payments: true },
-      orderBy: { dueDate: "asc" },
-      take: 100,
-    }),
-    db.payment.aggregate({
-      _sum: { amount: true },
-      where: {
-        paidAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) },
-      },
-    }),
-  ]);
+function lakh(n: number): string {
+  return n >= 100000 ? `₹${(n / 100000).toFixed(1)}L` : inr(n);
+}
+
+export default async function FeesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ paid?: string; reminded?: string }>;
+}) {
+  const user = await requireUser(["principal"]);
+  const sp = await searchParams;
+
+  const invoices = await db.feeInvoice.findMany({
+    include: { payments: true, student: { include: { classRoom: true } }, feeHead: true },
+  });
 
   const now = new Date();
-  const outstanding = openInvoices.reduce(
-    (sum, inv) => sum + inv.amount - inv.payments.reduce((s, p) => s + p.amount, 0),
-    0
-  );
-  const overdueCount = openInvoices.filter((i) => i.dueDate < now).length;
+  const soon = new Date(now.getTime() + 14 * 86400_000);
+  let billed = 0, collected = 0, overdueBal = 0, dueSoonBal = 0, overdueCount = 0;
+  const open: typeof invoices = [];
+  for (const inv of invoices) {
+    billed += inv.amount;
+    const paid = inv.payments.reduce((s, p) => s + p.amount, 0);
+    collected += Math.min(paid, inv.amount);
+    const bal = inv.amount - paid;
+    if (bal > 0) {
+      open.push(inv);
+      if (inv.dueDate < now) { overdueBal += bal; overdueCount++; }
+      else if (inv.dueDate < soon) dueSoonBal += bal;
+    }
+  }
+  const paidPct = billed ? Math.round((collected / billed) * 100) : 0;
+  const overduePct = billed ? Math.round((overdueBal / billed) * 100) : 0;
+  const dueSoonPct = billed ? Math.round((dueSoonBal / billed) * 100) : 0;
+  open.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
 
   return (
-    <Shell schoolName={school.name} userName={user.name}>
-      <PageTitle
-        title="Fees"
-        subtitle="Transparent collection: UPI direct to the school, no convenience charges"
-        action={
-          <form action={sendFeeReminders}>
-            <input type="hidden" name="scope" value="overdue" />
-            <button className={btnCls}>WhatsApp overdue reminders</button>
-          </form>
-        }
-      />
+    <Shell role={user.role} active="/fees" userName={user.name}>
+      {sp.paid && <Flash>{inr(Number(sp.paid))} recorded · receipt sent on WhatsApp</Flash>}
+      <h1>Fees<small>Term 1</small></h1>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <Stat label="Outstanding" value={inr(outstanding)} hint={`${openInvoices.length} open invoices`} />
-        <Stat label="Overdue" value={String(overdueCount)} hint="invoices past due date" />
-        <Stat label="Collected this month" value={inr(paidThisMonth._sum.amount ?? 0)} />
+      <div className="feehero">
+        <div>
+          <div className="big">{lakh(collected)}</div>
+          <div className="cap">collected of {lakh(billed)}</div>
+        </div>
+        <div className="feebar">
+          <div className="bar">
+            <i style={{ width: `${paidPct}%`, background: "var(--green)" }} />
+            <i style={{ width: `${dueSoonPct}%`, background: "var(--amber)" }} />
+            <i style={{ width: `${overduePct}%`, background: "var(--red-soft)" }} />
+          </div>
+          <div className="leg">
+            <span><span className="sw" style={{ background: "var(--green)" }} />{paidPct}% paid</span>
+            <span><span className="sw" style={{ background: "var(--amber)" }} />{dueSoonPct}% due soon</span>
+            <span><span className="sw" style={{ background: "var(--red)" }} />{overduePct}% overdue</span>
+          </div>
+        </div>
+        <form action={sendFeeReminders}>
+          <input type="hidden" name="scope" value="overdue" />
+          <button className="btn">Remind {overdueCount} on WhatsApp</button>
+        </form>
       </div>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-3">
-        <div className="space-y-4">
-          <Card>
-            <h2 className="mb-3 text-sm font-semibold text-stone-700">New fee head</h2>
-            <form action={createFeeHead} className="flex gap-2">
-              <input name="name" placeholder='e.g. "Tuition Term 2"' className={inputCls} required />
-              <button className={btnGhostCls}>Add</button>
-            </form>
-          </Card>
-          <Card>
-            <h2 className="mb-3 text-sm font-semibold text-stone-700">Generate invoices</h2>
-            <form action={generateInvoices} className="space-y-2">
-              <select name="feeHeadId" className={inputCls} required>
-                <option value="">Fee head…</option>
-                {feeHeads.map((f) => (
-                  <option key={f.id} value={f.id}>{f.name}</option>
-                ))}
-              </select>
-              <select name="classRoomId" className={inputCls} defaultValue="all">
-                <option value="all">All classes</option>
-                {classes.map((c) => (
-                  <option key={c.id} value={c.id}>{c.grade}-{c.section}</option>
-                ))}
-              </select>
-              <input name="amount" type="number" min="1" placeholder="Amount (₹ per student)" className={inputCls} required />
-              <input name="dueDate" type="date" defaultValue={todayISO()} className={inputCls} required />
-              <button className={btnCls}>Generate</button>
-              <p className="text-xs text-stone-400">
-                One invoice per student; already-billed students are skipped.
-              </p>
-            </form>
-          </Card>
-        </div>
-
-        <div className="lg:col-span-2">
-          <Card>
-            <h2 className="mb-3 text-sm font-semibold text-stone-700">Open invoices</h2>
-            {openInvoices.length === 0 ? (
-              <p className="text-sm text-stone-500">Nothing outstanding. 🎉</p>
-            ) : (
-              <div className="space-y-3">
-                {openInvoices.map((inv) => {
-                  const paid = inv.payments.reduce((s, p) => s + p.amount, 0);
-                  const balance = inv.amount - paid;
-                  const overdue = inv.dueDate < now;
-                  return (
-                    <div key={inv.id} className="rounded-md border border-stone-200 p-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <span className="font-medium">{inv.student.name}</span>{" "}
-                          <span className="text-xs text-stone-500">
-                            {inv.student.classRoom.grade}-{inv.student.classRoom.section} · {inv.feeHead.name}
-                          </span>
-                          <div className={`text-xs ${overdue ? "text-red-600" : "text-stone-500"}`}>
-                            Due {dateHuman(inv.dueDate)}
-                            {overdue && " · overdue"}
-                            {paid > 0 && ` · ${inr(paid)} paid`}
-                          </div>
-                        </div>
-                        <div className="text-right font-semibold">{inr(balance)}</div>
-                      </div>
-                      <form action={recordPayment} className="mt-2 flex flex-wrap items-center gap-2">
-                        <input type="hidden" name="invoiceId" value={inv.id} />
-                        <input
-                          name="amount"
-                          type="number"
-                          min="1"
-                          max={balance}
-                          defaultValue={balance}
-                          className="w-28 rounded-md border border-stone-300 px-2 py-1.5 text-sm"
-                          required
-                        />
-                        <select name="mode" className="rounded-md border border-stone-300 px-2 py-1.5 text-sm" defaultValue="upi">
-                          <option value="upi">UPI</option>
-                          <option value="cash">Cash</option>
-                          <option value="bank">Bank</option>
-                          <option value="other">Other</option>
-                        </select>
-                        <input
-                          name="reference"
-                          placeholder="Ref no (optional)"
-                          className="w-36 rounded-md border border-stone-300 px-2 py-1.5 text-sm"
-                        />
-                        <button className="rounded-md bg-stone-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-stone-700">
-                          Record payment
-                        </button>
-                      </form>
-                    </div>
-                  );
-                })}
+      <div className="sect">
+        <h2>
+          Oldest first <span className="more">{open.length} open invoices</span>
+        </h2>
+        <div>
+          {open.slice(0, 40).map((inv) => {
+            const paid = inv.payments.reduce((s, p) => s + p.amount, 0);
+            const bal = inv.amount - paid;
+            const daysLate = Math.floor((now.getTime() - inv.dueDate.getTime()) / 86400_000);
+            const tag =
+              daysLate > 30 ? ["r", "step 3"] : daysLate > 0 ? ["r", `${daysLate}d late`] : ["a", "upcoming"];
+            return (
+              <div className="li" key={inv.id}>
+                <Avatar name={inv.student.name} />
+                <span className="who">
+                  <b>{inv.student.name}</b>{" "}
+                  <span className="dim">
+                    · {inv.student.classRoom.grade}-{inv.student.classRoom.section} · {inv.feeHead.name}
+                    {paid > 0 ? ` · ${inr(paid)} paid` : ""}
+                  </span>
+                </span>
+                <span className={`tag ${tag[0]}`}>{tag[1]}</span>
+                <span className="amt">{inr(bal)}</span>
+                <form action={recordPayment} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input type="hidden" name="invoiceId" value={inv.id} />
+                  <input type="hidden" name="amount" value={bal} />
+                  <input type="hidden" name="back" value="/fees" />
+                  <select name="mode" className="inline-sel" defaultValue="upi" aria-label="Payment mode">
+                    <option value="upi">UPI</option>
+                    <option value="cash">Cash</option>
+                    <option value="bank">Bank</option>
+                  </select>
+                  <button className="textbtn">Record</button>
+                </form>
               </div>
-            )}
-          </Card>
+            );
+          })}
+          {open.length > 40 && (
+            <p style={{ color: "var(--faint)", fontSize: 12.5, marginTop: 10 }}>
+              Showing the 40 oldest — {open.length - 40} more open.
+            </p>
+          )}
         </div>
       </div>
     </Shell>

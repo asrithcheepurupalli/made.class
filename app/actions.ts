@@ -7,6 +7,7 @@ import {
   createSession,
   destroySession,
   requireUser,
+  roleHome,
   verifyPassword,
 } from "@/lib/auth";
 import {
@@ -29,7 +30,20 @@ export async function login(_prev: { error?: string } | undefined, formData: For
     return { error: "Invalid email or password" };
   }
   await createSession(user.id);
-  redirect("/");
+  redirect(roleHome(user.role));
+}
+
+// Demo-only: one-click role login for showing the product. Remove for production.
+export async function loginAsDemo(formData: FormData) {
+  const role = String(formData.get("role") ?? "principal");
+  const email =
+    role === "teacher" ? "teacher@sunrise.school"
+    : role === "desk" ? "desk@sunrise.school"
+    : "principal@sunrise.school";
+  const user = await db.user.findUnique({ where: { email } });
+  if (!user) redirect("/login");
+  await createSession(user.id);
+  redirect(roleHome(user.role));
 }
 
 export async function logout() {
@@ -137,12 +151,14 @@ export async function importStudentsCSV(formData: FormData) {
 // ---------- attendance ----------
 
 export async function saveAttendance(formData: FormData) {
-  await requireUser();
+  const user = await requireUser();
   const school = await getSchool();
   const classRoomId = String(formData.get("classRoomId") ?? "");
   const day = String(formData.get("date") ?? "");
-  const alertAbsent = formData.get("alertAbsent") === "on";
+  const alertAbsent = formData.get("alertAbsent") !== "off";
   if (!classRoomId || !day) return;
+  // teachers may only mark their own class
+  if (user.role === "teacher" && user.classRoomId !== classRoomId) return;
   const date = toUTCDate(day);
 
   const students = await db.student.findMany({
@@ -177,8 +193,39 @@ export async function saveAttendance(formData: FormData) {
     );
   }
 
-  revalidatePath(`/attendance`);
-  redirect(`/attendance?class=${classRoomId}&date=${day}&saved=1`);
+  const dest = user.role === "teacher" ? "/my-class" : "/attendance";
+  revalidatePath(dest);
+  redirect(`${dest}?class=${classRoomId}&date=${day}&saved=${absentees.length}`);
+}
+
+// Teacher: class diary entry → WhatsApp to their class's guardians
+export async function publishDiary(formData: FormData) {
+  const user = await requireUser(["teacher"]);
+  const school = await getSchool();
+  const body = String(formData.get("body") ?? "").trim();
+  if (!body || !user.classRoomId) return;
+
+  await db.notice.create({
+    data: {
+      schoolId: school.id,
+      title: "Class diary",
+      body,
+      audience: `class:${user.classRoomId}`,
+    },
+  });
+  const students = await db.student.findMany({
+    where: { active: true, classRoomId: user.classRoomId, guardianPhone: { not: null } },
+  });
+  await queueMessages(
+    students.map((s) => ({
+      toPhone: s.guardianPhone!,
+      toName: s.guardianName ?? undefined,
+      template: "notice" as const,
+      body: templates.notice[lang(s.language)]({ title: "Class diary", body, school: school.name }),
+    }))
+  );
+  revalidatePath("/diary");
+  redirect(`/diary?sent=${students.length}`);
 }
 
 // ---------- fees ----------
@@ -226,12 +273,13 @@ export async function generateInvoices(formData: FormData) {
 }
 
 export async function recordPayment(formData: FormData) {
-  await requireUser();
+  await requireUser(["principal", "desk"]);
   const school = await getSchool();
   const invoiceId = String(formData.get("invoiceId") ?? "");
   const amount = Number(formData.get("amount") ?? 0);
   const mode = String(formData.get("mode") ?? "cash");
   const reference = String(formData.get("reference") ?? "") || null;
+  const back = String(formData.get("back") ?? "/fees");
   if (!invoiceId || amount <= 0) return;
 
   const invoice = await db.feeInvoice.findUnique({
@@ -267,11 +315,13 @@ export async function recordPayment(formData: FormData) {
   }
 
   revalidatePath("/fees");
+  revalidatePath("/collect");
+  redirect(`${back.startsWith("/") ? back : "/fees"}${back.includes("?") ? "&" : "?"}paid=${amount}`);
 }
 
 // Queue WhatsApp fee reminders (with UPI deep link) for all overdue/unpaid invoices.
 export async function sendFeeReminders(formData: FormData) {
-  await requireUser();
+  await requireUser(["principal", "desk"]);
   const school = await getSchool();
   const scope = String(formData.get("scope") ?? "overdue"); // overdue | all-unpaid
 
@@ -321,7 +371,7 @@ export async function sendFeeReminders(formData: FormData) {
 // ---------- notices ----------
 
 export async function publishNotice(formData: FormData) {
-  await requireUser();
+  await requireUser(["principal"]);
   const school = await getSchool();
   const title = String(formData.get("title") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();

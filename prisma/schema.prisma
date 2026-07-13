@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -27,7 +27,8 @@ model User {
   email        String   @unique
   name         String
   passwordHash String
-  role         String   @default("admin") // admin | teacher
+  role         String   @default("principal") // principal | teacher | desk
+  classRoomId  String? // teachers: the class they own
   createdAt    DateTime @default(now())
 }
 

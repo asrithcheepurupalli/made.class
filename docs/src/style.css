@@ -1,0 +1,32 @@
+@font-face{font-family:'Fraunces';src:url(../fraunces.woff2);font-weight:560}
+@font-face{font-family:'Plex';src:url(../plex400.woff2);font-weight:400}
+@font-face{font-family:'PlexB';src:url(../plex600.woff2);font-weight:600}
+*{box-sizing:border-box}
+body{margin:0;font:400 10.5pt/1.55 'Plex',sans-serif;color:#17191E}
+b,strong,th{font-family:'PlexB'}
+.cover{padding:60pt 0 26pt}
+.wm{font-family:'Fraunces',serif;font-size:15pt}
+.wm i{font-style:normal;color:#0F6C4F}
+h1{font-family:'Fraunces',serif;font-weight:560;font-size:26pt;line-height:1.15;letter-spacing:-.01em;margin:14pt 0 6pt;max-width:34ch}
+.meta{color:#84878F;font-size:9.5pt}
+h2{font-family:'Fraunces',serif;font-weight:560;font-size:15pt;margin:26pt 0 8pt;letter-spacing:-.005em}
+h3{font-family:'PlexB';font-size:11pt;margin:16pt 0 5pt}
+p{margin:0 0 8pt;max-width:72ch}
+ul{margin:0 0 10pt;padding-left:16pt}
+li{margin-bottom:4pt;max-width:68ch}
+table{border-collapse:collapse;width:100%;font-size:9pt;margin:8pt 0 14pt}
+th{text-align:left;color:#84878F;font-size:8pt;letter-spacing:.08em;text-transform:uppercase;padding:5pt 8pt;border-bottom:1.2pt solid #17191E}
+td{padding:5pt 8pt;border-bottom:.5pt solid #E0DDD3;vertical-align:top}
+.tagg{color:#0F6C4F;font-family:'PlexB'}
+.tagr{color:#C24634;font-family:'PlexB'}
+.callout{background:#0F6C4F10;border-radius:8pt;padding:10pt 13pt;margin:10pt 0 14pt;max-width:72ch}
+.callout b{color:#0F6C4F}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12pt;margin:8pt 0 14pt}
+.card{background:#F4F2EC;border-radius:8pt;padding:11pt 13pt}
+.card h4{margin:0 0 4pt;font-family:'PlexB';font-size:10pt}
+.card p{font-size:9pt;color:#5c5f66;margin:0}
+.kbd{font-family:monospace;font-size:9pt;background:#F4F2EC;border-radius:3pt;padding:1pt 4pt}
+.foot{color:#B9BBC1;font-size:8pt;margin-top:24pt;border-top:.5pt solid #E0DDD3;padding-top:8pt}
+.pagebreak{page-break-before:always}
+.num{font-variant-numeric:tabular-nums}
+.small{font-size:9pt;color:#84878F}
