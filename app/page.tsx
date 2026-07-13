@@ -18,10 +18,17 @@ const JSON_LD = {
 };
 
 export default async function LandingPage() {
-  // signed-in users go straight to their app
+  // Signed-in users go straight to their app. The landing page must render
+  // even when the database is missing or empty (fresh deploy, no seed yet),
+  // so a failed lookup falls through to the marketing page.
   const userId = await currentUserId();
   if (userId) {
-    const user = await db.user.findUnique({ where: { id: userId } });
+    let user = null;
+    try {
+      user = await db.user.findUnique({ where: { id: userId } });
+    } catch {
+      // no database yet — render the landing page
+    }
     if (user) redirect(roleHome(user.role));
   }
 
