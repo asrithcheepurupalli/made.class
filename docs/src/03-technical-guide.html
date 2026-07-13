@@ -1,0 +1,68 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="style.css">
+<div class="cover">
+  <div class="wm">made<i>.</i>class</div>
+  <h1>Technical Guide &amp; Team Onboarding</h1>
+  <p class="meta">Stack, architecture, how to run, what's next · July 2026 · v1.0</p>
+</div>
+
+<h2>Stack</h2>
+<table>
+  <tr><th>Layer</th><th>Choice</th><th>Why</th></tr>
+  <tr><td>Framework</td><td>Next.js 16 (App Router, server actions)</td><td>Server-rendered screens, zero client API layer for v1, deploys anywhere</td></tr>
+  <tr><td>Database</td><td>Prisma ORM · SQLite (dev) / Postgres (deploy)</td><td>Zero-setup local dev; one-line provider switch for Vercel + Neon</td></tr>
+  <tr><td>Styling</td><td>Tailwind v4 + a hand-rolled design system in globals.css</td><td>The "glanceable" v4 design language: tokens, instruments, tiles, pills</td></tr>
+  <tr><td>Type</td><td>Fraunces (display) + IBM Plex Sans (UI), self-hosted woff2</td><td>No CDN dependency; brand carried by typography</td></tr>
+  <tr><td>Auth</td><td>HMAC-signed cookie sessions, scrypt password hashes</td><td>Dependency-free v1; see "before production" below</td></tr>
+</table>
+
+<h2>Repository layout</h2>
+<table>
+  <tr><th>Path</th><th>What lives there</th></tr>
+  <tr><td class="kbd">app/</td><td>One folder per screen (today, attendance, fees, collect, dues, my-class, diary, notices, outbox, students, settings, login) + landing page.tsx, sitemap.ts, robots.ts</td></tr>
+  <tr><td class="kbd">app/actions.ts</td><td>All server actions (mutations): login, attendance save, payments, reminders, notices, diary</td></tr>
+  <tr><td class="kbd">lib/</td><td>db.ts (Prisma client), auth.ts (sessions + roles), queries.ts (dashboard aggregations), messaging.ts (outbox + templates), upi.ts, format.ts</td></tr>
+  <tr><td class="kbd">components/</td><td>shell.tsx (nav per role, Avatar, Ring, Flash), attendance-grid.tsx (client pill grid)</td></tr>
+  <tr><td class="kbd">prisma/</td><td>schema.prisma + seed.ts (demo school: 447 students, invoices, 12 days of history)</td></tr>
+  <tr><td class="kbd">research/ · docs/</td><td>Full market research report · this doc pack</td></tr>
+</table>
+
+<h2>Data model</h2>
+<ul>
+  <li><b>School</b> — profile + UPI VPA (fees pay into this directly).</li>
+  <li><b>User</b> — role: principal | teacher | desk; teachers carry classRoomId (the class they own).</li>
+  <li><b>ClassRoom → Student</b> — students hold guardianName/guardianPhone (the WhatsApp channel) and language (en|hi, message language per family).</li>
+  <li><b>AttendanceRecord</b> — one row per student per UTC day, unique(studentId, date); status present | absent | leave.</li>
+  <li><b>FeeHead → FeeInvoice → Payment</b> — invoice status unpaid | partial | paid derived from payment totals; amounts in whole rupees.</li>
+  <li><b>Notice</b> — audience "all" or "class:&lt;id&gt;"; class diary entries are notices titled "Class diary".</li>
+  <li><b>OutboxMessage</b> — every parent-facing message: channel, template, rendered body, status queued | sent | failed. <b>All communication flows through this one table.</b></li>
+</ul>
+
+<h2>Messaging architecture</h2>
+<p>lib/messaging.ts exposes <span class="kbd">queueMessage(s)</span> and bilingual templates (fee_reminder, absence_alert, receipt, notice). Nothing sends directly — actions queue, a provider drains. The dev provider marks rows sent so every flow is demoable with zero credentials. Swapping in a real WhatsApp Business API provider (Interakt/Gupshup/Twilio or Meta Cloud API direct) means implementing one drain function plus webhook status updates; templates map 1:1 to WABA message templates that need Meta approval.</p>
+
+<h2>Auth &amp; roles</h2>
+<ul>
+  <li>Session = HMAC-signed cookie carrying the user id (lib/auth.ts); passwords scrypt-hashed with per-user salt.</li>
+  <li><span class="kbd">requireUser(roles?)</span> gates every page and action server-side; off-role users are redirected to their role home (teacher → /my-class, desk → /collect). Teachers can only save attendance for their own classRoomId.</li>
+  <li>Demo logins: <span class="kbd">loginAsDemo</span> action + one-click buttons on /login. <b>Remove for production.</b></li>
+</ul>
+<div class="callout"><b>Before any production deployment:</b> real session store with revocation; MFA for staff (the PowerSchool breach began with one non-MFA credential); rate limiting on login; password reset; audit log on payments; DPDP Act consent records for guardian contact data; per-school row isolation (multi-tenancy).</div>
+
+<h2>Run it</h2>
+<ul>
+  <li><b>Local:</b> <span class="kbd">npm install</span> → <span class="kbd">echo 'DATABASE_URL="file:./dev.db"' &gt; .env</span> → <span class="kbd">npx prisma db push</span> → <span class="kbd">npm run seed</span> → <span class="kbd">npm run dev</span>. Logins: principal|teacher|desk@sunrise.school / demo123.</li>
+  <li><b>Vercel:</b> switch prisma provider to postgresql, import repo, attach Neon Postgres (sets DATABASE_URL), set AUTH_SECRET, deploy, then db push + seed against the production URL. Full steps in README.</li>
+</ul>
+
+<h2>Roadmap (ordered)</h2>
+<table>
+  <tr><th>#</th><th>Item</th><th>Why it's next</th></tr>
+  <tr><td>1</td><td>Real WABA provider + webhook delivery status</td><td>Turns the outbox real; unlocks read-tracking the design already promises</td></tr>
+  <tr><td>2</td><td>Board-compliant report cards (CBSE first)</td><td>The worst seasonal teacher pain; a maintained-template moat</td></tr>
+  <tr><td>3</td><td>UDISE+/SDMS/APAAR-shaped exports</td><td>"Enter once, export everywhere" — the compliance wedge</td></tr>
+  <tr><td>4</td><td>Multi-school tenancy + onboarding wizard</td><td>Self-serve growth; prerequisite for pilots beyond one school</td></tr>
+  <tr><td>5</td><td>Offline-first attendance (PWA + sync)</td><td>36% of schools lack reliable internet; capture must never block</td></tr>
+  <tr><td>6</td><td>Auth hardening (MFA, sessions, audit)</td><td>Production bar; also the sales story vs breach-tainted incumbents</td></tr>
+</table>
+
+<p class="foot">made.class · Technical Guide · internal</p>

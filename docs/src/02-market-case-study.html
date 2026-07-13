@@ -1,0 +1,65 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="style.css">
+<div class="cover">
+  <div class="wm">made<i>.</i>class</div>
+  <h1>Market Case Study</h1>
+  <p class="meta">Why this product, why now, why this shape · July 2026 · sources: multi-source verified research (full report in repo: research/school-os-market-research.md)</p>
+</div>
+
+<h2>The problem</h2>
+<p>India has ~14.7 lakh schools and 24.7 crore students, and most of those schools run on <b>paper registers, Excel, and unstructured WhatsApp groups</b>. This is not for lack of software — dozens of school ERPs exist. It is because existing software adds work instead of removing it.</p>
+<ul>
+  <li><b>Teachers do "triple entry":</b> the paper register (legally required in many states) → Excel/ERP → government portals. Government teachers juggle UDISE+, daily mid-day-meal reporting, DIKSHA, state attendance apps and APAAR verification — teachers in national reporting literally ask for <i>one</i> app instead of five.</li>
+  <li><b>Fee collection is the #1 anxiety:</b> 87.5% of budget private schools report fee-collection difficulty; 15–35% of annual fee revenue is commonly stuck in dues; dues delay teacher salaries.</li>
+  <li><b>Parents won't install apps:</b> ~98% messaging penetration and ~68% Indic-language preference make WhatsApp the only channel that actually reaches families; incumbent parent apps suffer forced re-logins and failing payment integrations.</li>
+</ul>
+
+<h2>What the global incumbents teach us</h2>
+<ul>
+  <li><b>PowerSchool</b> (~23% of US/Canada SIS market, 60M+ student records) suffered the largest breach of children's data in US history (Dec 2024) via a single contractor credential without MFA, paid a ~$2.85M ransom that failed, and faces state litigation. <b>Security-by-default is now a differentiation axis.</b></li>
+  <li><b>Google Classroom</b> owns the classroom layer but structurally omits administration — fees, admissions, transport. The full "school OS" remains unowned even in mature markets.</li>
+  <li><b>ClassDojo</b> (used in ~95% of US K-8 schools) faces sustained peer-reviewed criticism for gamified surveillance-scoring of children. Our design deliberately avoids behavior points.</li>
+  <li><b>App fatigue is real:</b> North American families juggle 10–15 school apps; 85% of parents rate that experience ≤5/10. Consolidation — one channel, digest-batched — is what families want everywhere.</li>
+</ul>
+
+<h2>The Indian graveyard — and what survived</h2>
+<table>
+  <tr><th>Player</th><th>Raised / Valuation</th><th>What happened</th></tr>
+  <tr><td><b>Teachmint</b></td><td>$118M · $500M (2021)</td><td class="tagr">Layoffs 2022-23; FY25 revenue ₹74Cr almost entirely from smart-panel hardware — the SaaS story became a hardware story</td></tr>
+  <tr><td><b>LEAD Group</b></td><td>~$172M · $1.1B → ~$740M</td><td class="tagr">79% of revenue is books/kits; FY25 revenue flat — a curriculum distribution business, not SaaS</td></tr>
+  <tr><td><b>Classplus</b></td><td>~$247M · $600M+</td><td class="tagr">Pivoted to B2C test-prep; core SaaS "flat," losing large clients</td></tr>
+  <tr><td><b>Embibe</b> (Reliance)</td><td>~$180M from RIL</td><td class="tagr">Wound down; absorbed into Jio Platforms 2024-25</td></tr>
+  <tr><td><b>Entab, Fedena, MyClassboard, Vidyalaya</b></td><td>Bootstrapped</td><td class="tagg">Profitable at modest scale (1,500–3,000 schools each), defending regional/board niches for 15–25 years</td></tr>
+</table>
+<div class="callout"><b>The lesson:</b> Indian schools will not pay SaaS-multiple prices for software that adds work. Every VC-funded player hit this wall and escaped into hardware, books or test-prep. The long tail of 1.4M+ schools still runs on WhatsApp — <b>WhatsApp is the incumbent, not the ERPs.</b></div>
+
+<h2>Why the gap persists (structural facts)</h2>
+<ul>
+  <li>Only <b>64.7%</b> of schools have computer access (~58% functional); <b>63.5%</b> have internet (UDISE+ 2024-25). The teacher's own smartphone is the only universal device.</li>
+  <li>~70% of private schools are "affordable private schools" charging $5–25/month total fees; even ₹100–250/student/year software is a visible line item, often bought on credit.</li>
+  <li>Sales cycles run ~6 months, seasonal (Nov–Dec, Feb–Mar), with authority split across principal, trustee and correspondent. Field-sales economics killed the funded cohort.</li>
+  <li>Government is a hard first market: states pay for hardware (₹2.4L smart-classroom grants), get software free (NIC builds, Sunbird DPI), and buy services at L1 tender prices. No private vendor has won a full state-scale school-management contract; the Educomp-era BOOT contracts ended in balance-sheet wreckage.</li>
+</ul>
+
+<div class="pagebreak"></div>
+<h2>Our wedge</h2>
+<ul>
+  <li><b>Work elimination, not digitization.</b> Enter attendance once → register + parent alerts + (roadmap) government-format exports. The one feature teachers explicitly ask for.</li>
+  <li><b>WhatsApp-native parent layer.</b> No parent app, ever. Notices, alerts, receipts, fee reminders with UPI deep links — in the family's own language, with read-tracking.</li>
+  <li><b>Transparent fees as the revenue engine.</b> UPI direct to the school's VPA: no gateway, no convenience charges, no disguised credit — positioned squarely against the post-Byju's trust deficit in fee-fintech.</li>
+  <li><b>Security and dignity by design.</b> No behavior-point surveillance of children; minimal data collection; the PowerSchool breach defines our compliance bar (and pre-builds a future US story).</li>
+</ul>
+
+<h2>Go-to-market</h2>
+<ul>
+  <li><b>Beachhead:</b> budget/mid-market private schools, one or two cities, CBSE-affiliated first. Win density — principal peer networks are the real distribution channel.</li>
+  <li><b>Land with the painkiller</b> (fees + WhatsApp comms → measurable dues recovered), expand to the OS (attendance → report cards → full SIS).</li>
+  <li><b>Self-serve onboarding in days,</b> not 3–6 month deployments; monthly billing; payments take-rate subsidizes software price so the comparison with "free WhatsApp" still wins.</li>
+  <li><b>Channels:</b> school lenders, fee-payment rails, book distributors — people already in the principal's office.</li>
+  <li><b>Government later, sideways:</b> be the compliance layer private schools buy to survive UDISE+/APAAR reporting; list on GeM; stay Sunbird/NDEAR-compatible; watch for district/UT-scale pilots.</li>
+  <li><b>US eventually:</b> multi-year, relationship-led procurement (6–17 month cycles); enter as the parent-communication consolidation layer with a FERPA/COPPA/SOC 2 stack, after India proves the product.</li>
+</ul>
+
+<h2>What we deliberately did not build</h2>
+<p>No live-class video, no content marketplace, no behavior gamification, no fee financing. Each is either a graveyard (content, video), an anti-pattern (behavior points), or a trust risk (credit disguised as payments). Focus is the strategy.</p>
+
+<p class="foot">made.class · Market Case Study · sources include UDISE+ 2024-25, Entrackr/Inc42 MCA-filing analyses, peer-reviewed ClassDojo scholarship, DOJ/Texas-AG PowerSchool filings, JHU/Digital Promise procurement research — full citations in research/school-os-market-research.md</p>

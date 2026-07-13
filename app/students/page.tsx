@@ -44,7 +44,7 @@ export default async function StudentsPage({
         ))}
       </div>
 
-      <div className="sect" style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 34 }}>
+      <div className="sect" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 34 }}>
         <div>
           <form method="get" className="fld" style={{ maxWidth: 320, marginBottom: 8 }}>
             {selected && <input type="hidden" name="class" value={selected.id} />}

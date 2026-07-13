@@ -1,0 +1,94 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="style.css">
+<div class="cover">
+  <div class="wm">made<i>.</i>class</div>
+  <h1>Product &amp; Features Guide</h1>
+  <p class="meta">For the team and for demos · July 2026 · v1.0</p>
+</div>
+
+<h2>What made.class is</h2>
+<p>made.class is an India-first school operating system built around one observation from our market research: <b>every existing school ERP adds work; the winner must remove it.</b> We do three jobs — attendance, fees, and parent communication — and we do them so that teachers tap once, principals glance once, and parents install nothing.</p>
+<div class="callout"><b>The one-line pitch:</b> the school runs a dashboard; parents get plain WhatsApp. Attendance in one tap, fees by UPI directly to the school's own account with zero convenience charges, and every notice, alert and receipt delivered in the family's own language.</div>
+
+<h3>Product principles</h3>
+<ul>
+  <li><b>Glance, don't read.</b> Information is rendered as shapes — rings, tiles, bars, dots — not paragraphs. A principal reads the whole school's morning in two seconds.</li>
+  <li><b>Enter once, export everywhere.</b> One attendance tap feeds the register, the parent alert, and (roadmap) government-format exports. Never ask a teacher to type the same thing twice.</li>
+  <li><b>WhatsApp-native, app-optional.</b> ~98% of parent messages get read on WhatsApp. We never make a family install anything.</li>
+  <li><b>Transparent money.</b> UPI deep links pay the school's VPA directly. No gateway, no hidden charges, no disguised credit — the trust failures of existing fee-fintech are our differentiator.</li>
+</ul>
+
+<h2>Roles — everyone sees less, does more</h2>
+<table>
+  <tr><th>Role</th><th>Sees</th><th>Home screen</th><th>Cannot</th></tr>
+  <tr><td><b>Principal</b></td><td>Whole school: Today board, all registers, fees, students, notices, outbox, settings</td><td>Today</td><td>—</td></tr>
+  <tr><td><b>Teacher</b></td><td>Their own class only: register + class diary</td><td>My class</td><td>See fees or other classes</td></tr>
+  <tr><td><b>Front desk</b></td><td>Money screens: collect, dues, outbox</td><td>Collect</td><td>See academics</td></tr>
+  <tr><td><b>Parent</b></td><td>No login at all — receives WhatsApp messages</td><td>WhatsApp chat</td><td>n/a</td></tr>
+</table>
+
+<h2>Feature walkthrough</h2>
+<h3>Today (principal's dashboard)</h3>
+<ul>
+  <li><b>Three instruments:</b> attendance ring (present/total), money collected today with UPI share, and overdue exposure with families-past-30-days badge.</li>
+  <li><b>Registers board:</b> one tile per class — green check when marked, amber ⏳ when pending. The unmarked tile is the morning's itch to scratch.</li>
+  <li><b>Happening now:</b> a live feed of payments arriving and alerts going out.</li>
+  <li><b>Needs you:</b> maximum three cards — unmarked registers, students absent 3+ days, families overdue past 30 days.</li>
+  <li><b>Streak:</b> consecutive school days with every register complete. A run worth protecting.</li>
+</ul>
+
+<h3>Attendance (the register)</h3>
+<ul>
+  <li>Everyone starts <b>present</b>; the teacher taps only exceptions. Tap cycles present → absent → leave.</li>
+  <li>The whole class fits on one screen as name pills — no tables, no scrolling on a laptop.</li>
+  <li>Saving queues a WhatsApp absence alert to each absentee's guardian, in Hindi or English per family. A parent knows by 9:45 am, not at dinner.</li>
+  <li>Any date can be edited; saved registers show live present counts on the principal's board.</li>
+</ul>
+
+<h3>Fees</h3>
+<ul>
+  <li><b>Collection banner:</b> collected vs billed, with a paid / due-soon / overdue segmented bar.</li>
+  <li><b>Oldest-first dues list</b> with days-late tags and escalation steps.</li>
+  <li><b>One-button reminders:</b> every overdue family gets a WhatsApp message with a <span class="kbd">upi://</span> deep link that opens their own payment app with the school's VPA and exact balance prefilled.</li>
+  <li><b>Receipts are automatic:</b> recording a payment (UPI/cash/bank) instantly sends a WhatsApp receipt into the same family chat.</li>
+</ul>
+
+<h3>Collect (front desk)</h3>
+<ul>
+  <li>Search-first: type a name or admission number, the student's open dues appear as a card.</li>
+  <li>Tap the mode (UPI/cash/bank), tap <b>Record</b> — done. Running "received today" total on the same screen.</li>
+</ul>
+
+<h3>My class + Class diary (teacher)</h3>
+<ul>
+  <li>The teacher's register with a "Not saved — the office can see it's pending" nudge before 9:40.</li>
+  <li>Diary: one text box → "Send to 41 parents." Homework, test reminders, bring-the-geometry-box — delivered to the class's guardians only.</li>
+</ul>
+
+<h3>Notices, Outbox, Students, Settings</h3>
+<ul>
+  <li><b>Notices:</b> school-wide or per-class, published to every guardian on WhatsApp.</li>
+  <li><b>Outbox:</b> every parent-facing message flows through a provider-agnostic queue with delivery status — a WhatsApp Business API provider drops in behind the same interface.</li>
+  <li><b>Students:</b> roster with guardian contacts and reachability flags, individual add, CSV bulk import, add class.</li>
+  <li><b>Settings:</b> school profile and the UPI VPA fees are collected into.</li>
+</ul>
+
+<div class="pagebreak"></div>
+<h2>The five-minute client demo script</h2>
+<ul>
+  <li><b>1.</b> Open the landing page. Point at the phone mock: "your parents never install an app."</li>
+  <li><b>2.</b> Tap <b>Enter as Principal</b>. Read the greeting line aloud — one sentence, the whole morning. Point at the amber 8-B tile: "you always know which register is missing."</li>
+  <li><b>3.</b> Open 8-B, tap two students absent, save. Show the toast: "2 parents alerted on WhatsApp." Then open Outbox and show the actual messages, one in Hindi.</li>
+  <li><b>4.</b> Fees: point at the segmented bar, then tap <b>Remind on WhatsApp</b>. Explain the UPI link: money goes to the school's account, nobody in between, no charges.</li>
+  <li><b>5.</b> Switch to <b>Front desk</b>, search a student, record a cash payment — receipt lands in the parent's chat instantly. End on: "your front desk, your teachers and you each see exactly what you need — and your parents needed nothing new at all."</li>
+</ul>
+
+<h2>Demo environment</h2>
+<table>
+  <tr><th>Login</th><th>Role</th><th>Password</th></tr>
+  <tr><td>principal@sunrise.school</td><td>Principal</td><td>demo123</td></tr>
+  <tr><td>teacher@sunrise.school</td><td>Teacher (class 8-B)</td><td>demo123</td></tr>
+  <tr><td>desk@sunrise.school</td><td>Front desk</td><td>demo123</td></tr>
+</table>
+<p class="small">Demo school: Sunrise Public School, Vijayawada — 12 classes, 447 students, ~580 invoices, 12 days of attendance history. One-click role buttons exist on the login page (remove <span class="kbd">loginAsDemo</span> before production).</p>
+
+<p class="foot">made.class · Product &amp; Features Guide · internal + demo use</p>

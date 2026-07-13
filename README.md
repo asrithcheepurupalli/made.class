@@ -15,11 +15,13 @@ Built on [our market research](research/school-os-market-research.md): every exi
 - **Messaging outbox** — provider-agnostic queue; dev provider included, WhatsApp Business API drops in behind the same interface.
 - **Docs** in [`docs/`](docs/): product & features guide, market case study, technical guide, school one-pager (PDFs).
 
-## Run it locally (zero setup — SQLite)
+## Run it locally
+
+The schema ships Vercel-ready (Postgres). Use a free [Neon](https://neon.tech) database, any local Postgres — or for zero-setup SQLite dev, change `provider` to `"sqlite"` in `prisma/schema.prisma` and use `DATABASE_URL="file:./dev.db"`.
 
 ```bash
 npm install
-echo 'DATABASE_URL="file:./dev.db"' > .env
+echo 'DATABASE_URL="postgres://…"' > .env
 npx prisma db push
 npm run seed      # Sunrise Public School: 12 classes, 447 students, invoices, history
 npm run dev
@@ -37,9 +39,8 @@ The login page also has one-click demo-role buttons (`loginAsDemo` — remove fo
 
 ## Deploy to Vercel
 
-1. In `prisma/schema.prisma`, change `provider = "sqlite"` to `provider = "postgresql"` and commit.
-2. Import the repo at [vercel.com/new](https://vercel.com/new), attach a **Neon Postgres** database (sets `DATABASE_URL`), add `AUTH_SECRET` (e.g. `openssl rand -hex 32`) and optionally `NEXT_PUBLIC_SITE_URL`.
-3. Deploy, then from your machine:
+1. Import the repo at [vercel.com/new](https://vercel.com/new), attach a **Neon Postgres** database in the Storage tab (sets `DATABASE_URL`), add `AUTH_SECRET` (e.g. `openssl rand -hex 32`) and optionally `NEXT_PUBLIC_SITE_URL`.
+2. Deploy, then create tables + demo data from your machine:
 
 ```bash
 DATABASE_URL="<neon url>" npx prisma db push
