@@ -17,7 +17,7 @@ export default async function StudentProfile({
   const user = await requireUser(["principal", "desk"]);
   const { id } = await params;
   const s = await db.student.findUnique({
-    where: { id },
+    where: { id, ...(user.schoolId ? { schoolId: user.schoolId } : {}) },
     include: {
       classRoom: true,
       invoices: { include: { payments: true, feeHead: true }, orderBy: { dueDate: "asc" } },

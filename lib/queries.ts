@@ -1,8 +1,9 @@
 import { db } from "./db";
 import { toUTCDate, todayISO } from "./format";
 
-export async function classBoard() {
+export async function classBoard(schoolId: string) {
   const classes = await db.classRoom.findMany({
+    where: { schoolId },
     orderBy: [{ grade: "asc" }, { section: "asc" }],
     include: { _count: { select: { students: { where: { active: true } } } } },
   });
@@ -34,20 +35,20 @@ export async function classBoard() {
     .sort((a, b) => orderKey(a.grade) - orderKey(b.grade) || a.name.localeCompare(b.name));
 }
 
-export async function todayStats() {
+export async function todayStats(schoolId: string) {
   const today = toUTCDate(todayISO());
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
   const [studentCount, att, paymentsToday, openInvoices, reachable] = await Promise.all([
-    db.student.count({ where: { active: true } }),
-    db.attendanceRecord.groupBy({ by: ["status"], where: { date: today }, _count: true }),
-    db.payment.findMany({ where: { paidAt: { gte: startOfDay } } }),
+    db.student.count({ where: { active: true, schoolId } }),
+    db.attendanceRecord.groupBy({ by: ["status"], where: { date: today, classRoom: { schoolId } }, _count: true }),
+    db.payment.findMany({ where: { paidAt: { gte: startOfDay }, invoice: { student: { schoolId } } } }),
     db.feeInvoice.findMany({
-      where: { status: { in: ["unpaid", "partial"] } },
+      where: { status: { in: ["unpaid", "partial"] }, student: { schoolId } },
       include: { payments: true },
     }),
-    db.student.count({ where: { active: true, guardianPhone: { not: null } } }),
+    db.student.count({ where: { active: true, schoolId, guardianPhone: { not: null } } }),
   ]);
 
   const present = att.find((a) => a.status === "present")?._count ?? 0;
@@ -75,15 +76,16 @@ export async function todayStats() {
 }
 
 // Recent activity: merge payments + sent messages into a feed
-export async function recentActivity(limit = 6) {
+export async function recentActivity(schoolId: string, limit = 6) {
   const [payments, messages] = await Promise.all([
     db.payment.findMany({
+      where: { invoice: { student: { schoolId } } },
       orderBy: { paidAt: "desc" },
       take: limit,
       include: { invoice: { include: { student: true, feeHead: true } } },
     }),
     db.outboxMessage.findMany({
-      where: { template: { in: ["absence_alert", "notice"] } },
+      where: { template: { in: ["absence_alert", "notice"] }, OR: [{ schoolId }, { schoolId: null }] },
       orderBy: { createdAt: "desc" },
       take: limit,
     }),
@@ -108,8 +110,8 @@ export async function recentActivity(limit = 6) {
 }
 
 // Streak: consecutive past weekdays where every class had attendance marked
-export async function registerStreak(): Promise<number> {
-  const classCount = await db.classRoom.count();
+export async function registerStreak(schoolId: string): Promise<number> {
+  const classCount = await db.classRoom.count({ where: { schoolId } });
   let streak = 0;
   for (let off = 1; off <= 30 && streak < 30; off++) {
     const d = new Date();
@@ -117,17 +119,17 @@ export async function registerStreak(): Promise<number> {
     const dow = d.getDay();
     if (dow === 0 || dow === 6) continue;
     const day = toUTCDate(d.toISOString().slice(0, 10));
-    const markedClasses = await db.attendanceRecord.groupBy({ by: ["classRoomId"], where: { date: day } });
+    const markedClasses = await db.attendanceRecord.groupBy({ by: ["classRoomId"], where: { date: day, classRoom: { schoolId } } });
     if (markedClasses.length >= classCount) streak++;
     else break;
   }
   return streak;
 }
 
-export async function absentStreaks(minDays = 3) {
+export async function absentStreaks(schoolId: string, minDays = 3) {
   // students absent on the last N marked school days
   const recent = await db.attendanceRecord.findMany({
-    where: { status: "absent" },
+    where: { status: "absent", classRoom: { schoolId } },
     orderBy: { date: "desc" },
     take: 2000,
     include: { student: true },

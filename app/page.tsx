@@ -54,9 +54,14 @@ export default async function LandingPage() {
       <div className="lhero">
         <header className="lhero-head">
           <span className="wordmark">made<i>.</i>class</span>
-          <Link href="/login" className="btn" style={{ padding: "8px 18px" }}>
-            Sign in
-          </Link>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Link href="/signup" className="btn line" style={{ padding: "8px 18px" }}>
+              Start your school
+            </Link>
+            <Link href="/login" className="btn" style={{ padding: "8px 18px" }}>
+              Sign in
+            </Link>
+          </div>
         </header>
 
         <div className="lhero-grid" style={{ paddingBottom: 40 }}>

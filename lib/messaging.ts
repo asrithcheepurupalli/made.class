@@ -1,9 +1,10 @@
 import { db } from "./db";
+import { sendWhatsApp, whatsappConfigured } from "./providers/whatsapp";
 
 // Provider-agnostic parent messaging. Messages are queued in OutboxMessage and
-// drained by a provider. Parents never install an app: delivery is WhatsApp
-// (Business API) or SMS. The dev provider just marks rows sent so the whole
-// flow is demoable without credentials.
+// drained by a provider: the Meta WhatsApp Cloud API when WHATSAPP_* env vars
+// are set, otherwise a dev provider that marks rows sent so every flow stays
+// demoable without credentials.
 
 export type MessageTemplate =
   | "fee_reminder"
@@ -12,6 +13,7 @@ export type MessageTemplate =
   | "receipt";
 
 interface QueueInput {
+  schoolId?: string;
   toPhone: string;
   toName?: string;
   template: MessageTemplate;
@@ -20,8 +22,9 @@ interface QueueInput {
 }
 
 export async function queueMessage(input: QueueInput) {
-  return db.outboxMessage.create({
+  const msg = await db.outboxMessage.create({
     data: {
+      schoolId: input.schoolId,
       toPhone: input.toPhone,
       toName: input.toName,
       template: input.template,
@@ -29,12 +32,15 @@ export async function queueMessage(input: QueueInput) {
       channel: input.channel ?? "whatsapp",
     },
   });
+  await maybeDrain();
+  return msg;
 }
 
 export async function queueMessages(inputs: QueueInput[]) {
   if (inputs.length === 0) return { count: 0 };
-  return db.outboxMessage.createMany({
+  const res = await db.outboxMessage.createMany({
     data: inputs.map((i) => ({
+      schoolId: i.schoolId,
       toPhone: i.toPhone,
       toName: i.toName,
       template: i.template,
@@ -42,22 +48,52 @@ export async function queueMessages(inputs: QueueInput[]) {
       channel: i.channel ?? "whatsapp",
     })),
   });
+  await maybeDrain();
+  return res;
 }
 
-// Dev provider: marks queued messages as sent. A real provider (e.g. a
-// WhatsApp BSP) replaces this with actual API calls + webhook status updates.
-export async function drainOutboxDev() {
+// Dev provider drains are a single fast UPDATE — await them so the outbox is
+// consistent before the response. Real API drains can be slow (one HTTP call
+// per message), so they run best-effort here with the outbox button and the
+// delivery webhook as backstops.
+async function maybeDrain() {
+  if (whatsappConfigured()) void drainOutbox();
+  else await drainOutbox();
+}
+
+// Drain the queue. Real provider when configured; dev provider otherwise.
+export async function drainOutbox(limit = 200): Promise<number> {
   const queued = await db.outboxMessage.findMany({
     where: { status: "queued" },
-    select: { id: true },
+    orderBy: { createdAt: "asc" },
+    take: limit,
   });
   if (queued.length === 0) return 0;
-  await db.outboxMessage.updateMany({
-    where: { id: { in: queued.map((m) => m.id) } },
-    data: { status: "sent", sentAt: new Date() },
-  });
-  return queued.length;
+
+  if (!whatsappConfigured()) {
+    await db.outboxMessage.updateMany({
+      where: { id: { in: queued.map((m) => m.id) } },
+      data: { status: "sent", sentAt: new Date() },
+    });
+    return queued.length;
+  }
+
+  let sent = 0;
+  for (const m of queued) {
+    const res = await sendWhatsApp(m.toPhone, m.body);
+    await db.outboxMessage.update({
+      where: { id: m.id },
+      data: res.ok
+        ? { status: "sent", sentAt: new Date(), providerId: res.providerId }
+        : { status: "failed" },
+    });
+    if (res.ok) sent++;
+  }
+  return sent;
 }
+
+// Back-compat alias used by the outbox screen's manual button.
+export const drainOutboxDev = drainOutbox;
 
 // --- Templates (en + hi). Kept as plain functions so adding languages or
 // swapping to approved WABA template names later is mechanical. ---

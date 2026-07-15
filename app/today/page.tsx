@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/auth";
+import { requireUserWithSchool } from "@/lib/auth";
 import { inr } from "@/lib/format";
 import { classBoard, todayStats, recentActivity, registerStreak, absentStreaks } from "@/lib/queries";
 import { Shell, Avatar, Ring } from "@/components/shell";
@@ -12,9 +12,9 @@ function lakh(n: number): string {
 }
 
 export default async function TodayPage() {
-  const user = await requireUser(["principal"]);
+  const { user, school } = await requireUserWithSchool(["principal"]);
   const [stats, board, feed, streak, absentees] = await Promise.all([
-    todayStats(), classBoard(), recentActivity(6), registerStreak(), absentStreaks(3),
+    todayStats(school.id), classBoard(school.id), recentActivity(school.id, 6), registerStreak(school.id), absentStreaks(school.id, 3),
   ]);
 
   const hour = new Date().getHours();
@@ -70,6 +70,12 @@ export default async function TodayPage() {
           Registers today <span className="more">tap a class to open</span>
         </h2>
         <div className="board">
+          {board.length === 0 && (
+            <Link href="/students" className="tile pending" style={{ gridColumn: "1 / -1" }}>
+              <span className="cl">No classes yet <span className="pend">start here</span></span>
+              <span className="n">Add your first class and students →</span>
+            </Link>
+          )}
           {board.map((c) => (
             <Link key={c.id} href={`/attendance?class=${c.id}`} className={`tile ${c.marked ? "" : "pending"}`}>
               <span className="cl">

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { requireUserWithSchool } from "@/lib/auth";
 import { Shell, Avatar } from "@/components/shell";
 import { createStudent, importStudentsCSV, createClass } from "@/app/actions";
 
@@ -12,10 +12,10 @@ export default async function StudentsPage({
 }: {
   searchParams: Promise<{ class?: string; q?: string }>;
 }) {
-  const user = await requireUser(["principal"]);
+  const { user, school } = await requireUserWithSchool(["principal"]);
   const sp = await searchParams;
   const orderKey = (g: string) => (g === "LKG" ? -2 : g === "UKG" ? -1 : parseInt(g, 10) || 0);
-  const classes = (await db.classRoom.findMany()).sort(
+  const classes = (await db.classRoom.findMany({ where: { schoolId: school.id } })).sort(
     (a, b) => orderKey(a.grade) - orderKey(b.grade) || a.section.localeCompare(b.section)
   );
   const selected = classes.find((c) => c.id === sp.class) ?? null;
@@ -23,6 +23,7 @@ export default async function StudentsPage({
   const students = await db.student.findMany({
     where: {
       active: true,
+      schoolId: school.id,
       ...(selected ? { classRoomId: selected.id } : {}),
       ...(sp.q ? { name: { contains: sp.q } } : {}),
     },

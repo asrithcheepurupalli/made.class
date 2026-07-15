@@ -12,7 +12,9 @@ Built on [our market research](research/school-os-market-research.md): every exi
   - **Teacher** — their class register (tap-to-mark pill grid) + class diary to their parents.
   - **Front desk** — search-first fee collection with instant WhatsApp receipts + dues ladder.
   - **Parent** — no login, no app: WhatsApp messages (alerts, reminders with UPI links, receipts, notices), Hindi/English per family.
-- **Messaging outbox** — provider-agnostic queue; dev provider included, WhatsApp Business API drops in behind the same interface.
+- **Messaging outbox** — auto-draining queue. Set `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_ID` and `WHATSAPP_VERIFY_TOKEN` for real delivery via the Meta WhatsApp Cloud API (webhook at `/api/whatsapp/webhook` updates delivery status); without them, a dev provider marks messages sent so every flow stays demoable.
+- **Multi-school** — self-serve signup at `/signup` creates an isolated school with its own principal account; all queries are scoped per school.
+- **Exams & report cards** — marks entry grid, print-ready CBSE-graded report cards, student profiles, UDISE-format CSV export.
 - **Docs** in [`docs/`](docs/): product & features guide, market case study, technical guide, school one-pager (PDFs).
 
 ## Run it locally
@@ -53,4 +55,4 @@ Next.js 16 (App Router, server actions) · Prisma (SQLite dev / Postgres deploy)
 
 ## Before real production
 
-Real session store + MFA, rate limiting, password reset, payments audit log, DPDP consent records, multi-school tenancy, WABA provider — sequenced in [`docs/madeclass-technical-guide.pdf`](docs/madeclass-technical-guide.pdf).
+Done already: multi-school isolation, login throttling, password change, WABA provider + webhook. Still open: real session store + MFA, password reset, payments audit log, DPDP consent records, WABA template approval — sequenced in [`docs/madeclass-technical-guide.pdf`](docs/madeclass-technical-guide.pdf). Remove the demo-login buttons (`loginAsDemo`) before onboarding real schools.

@@ -14,7 +14,7 @@ export async function GET() {
   }
 
   const students = await db.student.findMany({
-    where: { active: true },
+    where: { active: true, ...(user.schoolId ? { schoolId: user.schoolId } : {}) },
     include: { classRoom: true },
     orderBy: [{ classRoomId: "asc" }, { name: "asc" }],
   });

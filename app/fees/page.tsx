@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { requireUserWithSchool } from "@/lib/auth";
 import { inr } from "@/lib/format";
 import { Shell, Avatar, Flash } from "@/components/shell";
 import { recordPayment, sendFeeReminders } from "@/app/actions";
@@ -16,10 +16,11 @@ export default async function FeesPage({
 }: {
   searchParams: Promise<{ paid?: string; reminded?: string }>;
 }) {
-  const user = await requireUser(["principal"]);
+  const { user, school } = await requireUserWithSchool(["principal"]);
   const sp = await searchParams;
 
   const invoices = await db.feeInvoice.findMany({
+    where: { student: { schoolId: school.id } },
     include: { payments: true, student: { include: { classRoom: true } }, feeHead: true },
   });
 

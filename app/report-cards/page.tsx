@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { requireUserWithSchool } from "@/lib/auth";
 import { Shell } from "@/components/shell";
 import { PrintButton } from "@/components/print-button";
 import { cbseGrade, gradeRemark } from "@/lib/grades";
@@ -12,7 +12,7 @@ export default async function ReportCardsPage({
 }: {
   searchParams: Promise<{ exam?: string; class?: string }>;
 }) {
-  const user = await requireUser(["principal", "teacher"]);
+  const { user, school: userSchool } = await requireUserWithSchool(["principal", "teacher"]);
   const sp = await searchParams;
 
   const classRoomId = user.role === "teacher" ? user.classRoomId : sp.class;
@@ -25,11 +25,11 @@ export default async function ReportCardsPage({
     );
   }
 
-  const [school, exams, classRoom, subjects, students] = await Promise.all([
-    db.school.findFirst(),
-    db.exam.findMany({ orderBy: { heldOn: "desc" } }),
+  const school = userSchool;
+  const [exams, classRoom, subjects, students] = await Promise.all([
+    db.exam.findMany({ where: { schoolId: school.id }, orderBy: { heldOn: "desc" } }),
     db.classRoom.findUnique({ where: { id: classRoomId } }),
-    db.subject.findMany({ orderBy: { order: "asc" } }),
+    db.subject.findMany({ where: { schoolId: school.id }, orderBy: { order: "asc" } }),
     db.student.findMany({ where: { classRoomId, active: true }, orderBy: { name: "asc" } }),
   ]);
   const exam = exams.find((e) => e.id === sp.exam) ?? exams[0];

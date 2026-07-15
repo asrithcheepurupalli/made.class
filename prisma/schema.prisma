@@ -28,6 +28,7 @@ model User {
   name         String
   passwordHash String
   role         String   @default("principal") // principal | teacher | desk
+  schoolId     String? // the school this account belongs to
   classRoomId  String? // teachers: the class they own
   createdAt    DateTime @default(now())
 }
@@ -172,8 +173,10 @@ model Mark {
 // Provider-agnostic message queue. In production a worker drains this via a
 // WhatsApp Business API / SMS provider; the dev provider marks rows sent.
 model OutboxMessage {
-  id        String    @id @default(cuid())
-  channel   String    @default("whatsapp") // whatsapp | sms
+  id         String    @id @default(cuid())
+  schoolId   String?
+  providerId String? // message id from the WhatsApp/SMS provider, for webhook status updates
+  channel    String    @default("whatsapp") // whatsapp | sms
   toPhone   String
   toName    String?
   template  String // fee_reminder | absence_alert | notice | receipt

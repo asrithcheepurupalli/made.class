@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { requireUserWithSchool } from "@/lib/auth";
 import { Shell, Avatar } from "@/components/shell";
 import { sendQueuedMessages } from "@/app/actions";
 
@@ -18,11 +18,11 @@ export default async function OutboxPage({
 }: {
   searchParams: Promise<{ queued?: string }>;
 }) {
-  const user = await requireUser(["principal", "desk"]);
+  const { user, school } = await requireUserWithSchool(["principal", "desk"]);
   const sp = await searchParams;
   const [queued, recent] = await Promise.all([
-    db.outboxMessage.count({ where: { status: "queued" } }),
-    db.outboxMessage.findMany({ orderBy: { createdAt: "desc" }, take: 40 }),
+    db.outboxMessage.count({ where: { status: "queued", OR: [{ schoolId: school.id }, { schoolId: null }] } }),
+    db.outboxMessage.findMany({ where: { OR: [{ schoolId: school.id }, { schoolId: null }] }, orderBy: { createdAt: "desc" }, take: 40 }),
   ]);
 
   return (

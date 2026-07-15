@@ -66,3 +66,14 @@ export async function requireUser(roles?: Role[]) {
   if (roles && !roles.includes(user.role as Role)) redirect(roleHome(user.role));
   return user;
 }
+
+// User + their school, for scoping every query. Accounts created before
+// multi-school (schoolId null) fall back to the first school.
+export async function requireUserWithSchool(roles?: Role[]) {
+  const user = await requireUser(roles);
+  const school = user.schoolId
+    ? await db.school.findUnique({ where: { id: user.schoolId } })
+    : await db.school.findFirst();
+  if (!school) redirect("/login");
+  return { user, school };
+}

@@ -49,6 +49,9 @@ export default function LoginPage() {
             </button>
           </div>
         </form>
+        <p style={{ textAlign: "center", color: "var(--faint)", fontSize: 12.5, marginTop: 18 }}>
+          New school? <a href="/signup" style={{ color: "var(--brand-ink)" }}>Create your account</a>
+        </p>
       </div>
     </div>
   );

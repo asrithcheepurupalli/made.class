@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { requireUserWithSchool } from "@/lib/auth";
 import { Shell, Flash } from "@/components/shell";
 import { MarksGrid } from "@/components/marks-grid";
 import { saveMarks } from "@/app/actions";
@@ -13,7 +13,7 @@ export default async function MarksPage({
 }: {
   searchParams: Promise<{ exam?: string; saved?: string }>;
 }) {
-  const user = await requireUser(["teacher"]);
+  const { user, school } = await requireUserWithSchool(["teacher"]);
   const sp = await searchParams;
   if (!user.classRoomId) {
     return (
@@ -24,8 +24,8 @@ export default async function MarksPage({
   }
 
   const [exams, subjects, classRoom, students] = await Promise.all([
-    db.exam.findMany({ orderBy: { heldOn: "desc" } }),
-    db.subject.findMany({ orderBy: { order: "asc" } }),
+    db.exam.findMany({ where: { schoolId: school.id }, orderBy: { heldOn: "desc" } }),
+    db.subject.findMany({ where: { schoolId: school.id }, orderBy: { order: "asc" } }),
     db.classRoom.findUnique({ where: { id: user.classRoomId } }),
     db.student.findMany({ where: { classRoomId: user.classRoomId, active: true }, orderBy: { name: "asc" } }),
   ]);

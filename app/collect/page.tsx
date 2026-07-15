@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { requireUserWithSchool } from "@/lib/auth";
 import { inr } from "@/lib/format";
 import { Shell, Avatar, Flash } from "@/components/shell";
 import { recordPayment } from "@/app/actions";
@@ -12,7 +12,7 @@ export default async function CollectPage({
 }: {
   searchParams: Promise<{ q?: string; sid?: string; paid?: string }>;
 }) {
-  const user = await requireUser(["desk", "principal"]);
+  const { user, school } = await requireUserWithSchool(["desk", "principal"]);
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
 
@@ -20,6 +20,7 @@ export default async function CollectPage({
     ? await db.student.findMany({
         where: {
           active: true,
+          schoolId: school.id,
           OR: [{ name: { contains: q } }, { admissionNo: { contains: q } }],
         },
         include: { classRoom: true },
@@ -46,7 +47,7 @@ export default async function CollectPage({
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
   const paymentsToday = await db.payment.findMany({
-    where: { paidAt: { gte: startOfDay } },
+    where: { paidAt: { gte: startOfDay }, invoice: { student: { schoolId: school.id } } },
     orderBy: { paidAt: "desc" },
     include: { invoice: { include: { student: true, feeHead: true } } },
   });

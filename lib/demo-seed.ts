@@ -102,9 +102,9 @@ export async function ensureDemoData(db: PrismaClient): Promise<boolean> {
 
   await db.user.createMany({
     data: [
-      { email: "principal@sunrise.school", name: "Principal Lakshmi", passwordHash: hashPassword("demo123"), role: "principal" },
-      { email: "teacher@sunrise.school", name: "Suresh sir", passwordHash: hashPassword("demo123"), role: "teacher", classRoomId: class8B.id },
-      { email: "desk@sunrise.school", name: "Anita (front desk)", passwordHash: hashPassword("demo123"), role: "desk" },
+      { email: "principal@sunrise.school", name: "Principal Lakshmi", passwordHash: hashPassword("demo123"), role: "principal", schoolId: school.id },
+      { email: "teacher@sunrise.school", name: "Suresh sir", passwordHash: hashPassword("demo123"), role: "teacher", schoolId: school.id, classRoomId: class8B.id },
+      { email: "desk@sunrise.school", name: "Anita (front desk)", passwordHash: hashPassword("demo123"), role: "desk", schoolId: school.id },
     ],
   });
 
@@ -168,7 +168,7 @@ export async function ensureDemoData(db: PrismaClient): Promise<boolean> {
   // invoices + payments + receipts (batched with pre-generated ids)
   const invoices: { id: string; studentId: string; classRoomId: string; feeHeadId: string; amount: number; dueDate: Date; status: string }[] = [];
   const payments: { invoiceId: string; amount: number; mode: string; reference: string; paidAt: Date }[] = [];
-  const receipts: { toPhone: string; toName: string; template: string; body: string; status: string; createdAt: Date; sentAt: Date }[] = [];
+  const receipts: { schoolId: string; toPhone: string; toName: string; template: string; body: string; status: string; createdAt: Date; sentAt: Date }[] = [];
   let paidToday = 0;
   for (const s of students) {
     const roll = rnd();
@@ -184,6 +184,7 @@ export async function ensureDemoData(db: PrismaClient): Promise<boolean> {
         : daysAgo(1 + Math.floor(rnd() * 25), 10, Math.floor(rnd() * 59));
       payments.push({ invoiceId: invId, amount, mode: rnd() < 0.78 ? "upi" : "cash", reference: `UPI${100000 + Math.floor(rnd() * 899999)}`, paidAt });
       receipts.push({
+        schoolId: school.id,
         toPhone: s.guardianPhone, toName: s.guardianName, template: "receipt",
         body: `Received ₹${amount.toLocaleString("en-IN")} for "Tuition Term 1" (${s.name}). Thank you! - Sunrise Public School`,
         status: "sent", createdAt: paidAt, sentAt: paidAt,

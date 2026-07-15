@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { requireUserWithSchool } from "@/lib/auth";
 import { todayISO } from "@/lib/format";
 import { Shell, Flash } from "@/components/shell";
 import { MarksGrid } from "@/components/marks-grid";
@@ -14,14 +14,14 @@ export default async function ExamsPage({
 }: {
   searchParams: Promise<{ exam?: string; class?: string; saved?: string }>;
 }) {
-  const user = await requireUser(["principal"]);
+  const { user, school } = await requireUserWithSchool(["principal"]);
   const sp = await searchParams;
 
   const orderKey = (g: string) => (g === "LKG" ? -2 : g === "UKG" ? -1 : parseInt(g, 10) || 0);
   const [exams, classes, subjects] = await Promise.all([
-    db.exam.findMany({ orderBy: { heldOn: "desc" } }),
-    db.classRoom.findMany(),
-    db.subject.findMany({ orderBy: { order: "asc" } }),
+    db.exam.findMany({ where: { schoolId: school.id }, orderBy: { heldOn: "desc" } }),
+    db.classRoom.findMany({ where: { schoolId: school.id } }),
+    db.subject.findMany({ where: { schoolId: school.id }, orderBy: { order: "asc" } }),
   ]);
   classes.sort((a, b) => orderKey(a.grade) - orderKey(b.grade) || a.section.localeCompare(b.section));
 

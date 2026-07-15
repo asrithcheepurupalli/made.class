@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { requireUserWithSchool } from "@/lib/auth";
 import { Shell } from "@/components/shell";
 import { publishNotice } from "@/app/actions";
 
@@ -7,12 +7,12 @@ export const metadata = { title: "Notices" };
 export const dynamic = "force-dynamic";
 
 export default async function NoticesPage() {
-  const user = await requireUser(["principal"]);
+  const { user, school } = await requireUserWithSchool(["principal"]);
   const orderKey = (g: string) => (g === "LKG" ? -2 : g === "UKG" ? -1 : parseInt(g, 10) || 0);
   const [notices, classes, guardianCount] = await Promise.all([
-    db.notice.findMany({ orderBy: { createdAt: "desc" }, take: 30 }),
-    db.classRoom.findMany(),
-    db.student.count({ where: { active: true, guardianPhone: { not: null } } }),
+    db.notice.findMany({ where: { schoolId: school.id }, orderBy: { createdAt: "desc" }, take: 30 }),
+    db.classRoom.findMany({ where: { schoolId: school.id } }),
+    db.student.count({ where: { active: true, schoolId: school.id, guardianPhone: { not: null } } }),
   ]);
   classes.sort((a, b) => orderKey(a.grade) - orderKey(b.grade) || a.section.localeCompare(b.section));
   const classById = new Map(classes.map((c) => [c.id, `${c.grade}-${c.section}`]));

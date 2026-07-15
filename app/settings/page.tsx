@@ -1,18 +1,22 @@
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
-import { Shell } from "@/components/shell";
-import { updateSchoolSettings } from "@/app/actions";
+import { requireUserWithSchool } from "@/lib/auth";
+import { Shell, Flash } from "@/components/shell";
+import { updateSchoolSettings, changePassword } from "@/app/actions";
 
 export const metadata = { title: "Settings" };
 export const dynamic = "force-dynamic";
 
-export default async function SettingsPage() {
-  const user = await requireUser(["principal"]);
-  const school = await db.school.findFirst();
-  if (!school) return null;
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ pw?: string }>;
+}) {
+  const { user, school } = await requireUserWithSchool(["principal"]);
+  const sp = await searchParams;
 
   return (
     <Shell role={user.role} active="/settings" userName={user.name}>
+      {sp.pw && <Flash>Password changed</Flash>}
       <h1>Settings<small>school profile & payments</small></h1>
       <div className="sect fld" style={{ maxWidth: "52ch", marginTop: 6 }}>
         <form action={updateSchoolSettings}>
@@ -28,6 +32,19 @@ export default async function SettingsPage() {
           <input id="upiPayee" name="upiPayee" defaultValue={school.upiPayee ?? ""} />
           <div style={{ marginTop: 22 }}>
             <button className="btn">Save settings</button>
+          </div>
+        </form>
+      </div>
+
+      <div className="sect fld" style={{ maxWidth: "52ch" }}>
+        <h2>Change password</h2>
+        <form action={changePassword}>
+          <label htmlFor="current">Current password</label>
+          <input id="current" name="current" type="password" required />
+          <label htmlFor="next">New password (8+ characters)</label>
+          <input id="next" name="next" type="password" minLength={8} required />
+          <div style={{ marginTop: 20 }}>
+            <button className="btn quiet">Change password</button>
           </div>
         </form>
       </div>
