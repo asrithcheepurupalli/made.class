@@ -34,13 +34,20 @@ export async function login(_prev: { error?: string } | undefined, formData: For
 }
 
 // Demo-only: one-click role login for showing the product. Remove for production.
+// Self-healing: on a fresh database (new deploy, no seed run yet) the first
+// click seeds the whole demo school before signing in.
 export async function loginAsDemo(formData: FormData) {
   const role = String(formData.get("role") ?? "principal");
   const email =
     role === "teacher" ? "teacher@sunrise.school"
     : role === "desk" ? "desk@sunrise.school"
     : "principal@sunrise.school";
-  const user = await db.user.findUnique({ where: { email } });
+  let user = await db.user.findUnique({ where: { email } });
+  if (!user) {
+    const { ensureDemoData } = await import("@/lib/demo-seed");
+    await ensureDemoData(db);
+    user = await db.user.findUnique({ where: { email } });
+  }
   if (!user) redirect("/login");
   await createSession(user.id);
   redirect(roleHome(user.role));
