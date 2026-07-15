@@ -64,6 +64,7 @@ model Student {
   classRoom  ClassRoom          @relation(fields: [classRoomId], references: [id])
   attendance AttendanceRecord[]
   invoices   FeeInvoice[]
+  marks      Mark[]
 
   @@unique([schoolId, admissionNo])
 }
@@ -130,6 +131,42 @@ model Notice {
   createdAt DateTime @default(now())
 
   school School @relation(fields: [schoolId], references: [id])
+}
+
+model Subject {
+  id       String @id @default(cuid())
+  schoolId String
+  name     String
+  order    Int    @default(0)
+
+  marks Mark[]
+
+  @@unique([schoolId, name])
+}
+
+model Exam {
+  id       String   @id @default(cuid())
+  schoolId String
+  name     String // "Unit Test 1", "Half Yearly"
+  maxMarks Int      @default(100)
+  heldOn   DateTime
+
+  marks Mark[]
+}
+
+model Mark {
+  id        String @id @default(cuid())
+  examId    String
+  studentId String
+  subjectId String
+  score     Int
+
+  exam    Exam    @relation(fields: [examId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+  subject Subject @relation(fields: [subjectId], references: [id])
+
+  @@unique([examId, studentId, subjectId])
+  @@index([examId, studentId])
 }
 
 // Provider-agnostic message queue. In production a worker drains this via a

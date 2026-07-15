@@ -6,6 +6,7 @@ const NAV: Record<string, { href: string; label: string }[]> = {
     { href: "/today", label: "Today" },
     { href: "/attendance", label: "Attendance" },
     { href: "/fees", label: "Fees" },
+    { href: "/exams", label: "Exams" },
     { href: "/students", label: "Students" },
     { href: "/notices", label: "Notices" },
     { href: "/outbox", label: "Outbox" },
@@ -13,6 +14,7 @@ const NAV: Record<string, { href: string; label: string }[]> = {
   ],
   teacher: [
     { href: "/my-class", label: "My class" },
+    { href: "/marks", label: "Marks" },
     { href: "/diary", label: "Class diary" },
   ],
   desk: [

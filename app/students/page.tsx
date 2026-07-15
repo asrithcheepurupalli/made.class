@@ -33,7 +33,12 @@ export default async function StudentsPage({
 
   return (
     <Shell role={user.role} active="/students" userName={user.name}>
-      <h1>Students<small>{students.length} shown</small></h1>
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
+        <h1>Students<small>{students.length} shown</small></h1>
+        <a href="/students/export" className="btn quiet">
+          Export UDISE-format CSV
+        </a>
+      </div>
 
       <div className="classpick">
         <Link href="/students" aria-current={!selected ? "true" : undefined}>All</Link>
@@ -51,7 +56,7 @@ export default async function StudentsPage({
             <input name="q" defaultValue={sp.q ?? ""} placeholder="Search name…" />
           </form>
           {students.map((s) => (
-            <div className="li" key={s.id}>
+            <Link href={`/students/${s.id}`} className="li" key={s.id} style={{ textDecoration: "none", color: "inherit" }}>
               <Avatar name={s.name} />
               <span className="who">
                 <b>{s.name}</b>{" "}
@@ -61,7 +66,7 @@ export default async function StudentsPage({
                 </span>
               </span>
               <span className={`tag ${s.guardianPhone ? "g" : "a"}`}>{s.guardianPhone ? "WhatsApp ✓" : "no phone"}</span>
-            </div>
+            </Link>
           ))}
         </div>
 

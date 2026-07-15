@@ -14,8 +14,51 @@ function hashPassword(password: string): string {
 const FIRST = ["Aarav","Ananya","Arjun","Ayaan","Diya","Farhan","Ishita","Kabir","Kavya","Meera","Priya","Riya","Rohan","Sanya","Vihaan","Zoya","Advait","Anika","Dev","Esha","Imran","Jhanvi","Karthik","Lakshmi","Mohan","Nandini","Om","Pooja","Raghav","Sneha","Tanvi","Uday","Varsha","Yash"];
 const LAST = ["Sharma","Patel","Reddy","Gupta","Khan","Verma","Naidu","Iyer","Shaikh","Das","Rao","Mehta","Kulkarni","Bose","Nair"];
 
+const SUBJECTS = ["English", "Hindi", "Mathematics", "Science", "Social Science"];
+
+// Adds subjects + a Unit Test with marks for every student. Safe to call on
+// databases seeded before the exams module existed.
+export async function ensureExamData(db: PrismaClient): Promise<boolean> {
+  const school = await db.school.findFirst();
+  if (!school) return false;
+  if (await db.subject.findFirst()) return false;
+
+  let seedState = 137;
+  const rnd = () => {
+    seedState = (seedState * 1103515245 + 12345) % 2147483648;
+    return seedState / 2147483648;
+  };
+
+  const subjects = SUBJECTS.map((name, i) => ({ id: randomUUID(), schoolId: school.id, name, order: i }));
+  await db.subject.createMany({ data: subjects });
+
+  const heldOn = new Date();
+  heldOn.setDate(heldOn.getDate() - 9);
+  const exam = await db.exam.create({
+    data: { schoolId: school.id, name: "Unit Test 1", maxMarks: 100, heldOn },
+  });
+
+  const students = await db.student.findMany({ where: { active: true }, select: { id: true } });
+  const marks: { examId: string; studentId: string; subjectId: string; score: number }[] = [];
+  for (const s of students) {
+    // per-student ability band so report cards look human, not uniform noise
+    const base = 40 + Math.floor(rnd() * 45);
+    for (const sub of subjects) {
+      const score = Math.max(18, Math.min(99, base + Math.floor(rnd() * 21) - 10));
+      marks.push({ examId: exam.id, studentId: s.id, subjectId: sub.id, score });
+    }
+  }
+  for (let i = 0; i < marks.length; i += 1000) {
+    await db.mark.createMany({ data: marks.slice(i, i + 1000) });
+  }
+  return true;
+}
+
 export async function ensureDemoData(db: PrismaClient): Promise<boolean> {
-  if (await db.school.findFirst()) return false; // already seeded
+  if (await db.school.findFirst()) {
+    await ensureExamData(db); // upgrade older seeds in place
+    return false;
+  }
 
   let seedState = 42;
   const rnd = () => {
@@ -162,5 +205,6 @@ export async function ensureDemoData(db: PrismaClient): Promise<boolean> {
     ],
   });
 
+  await ensureExamData(db);
   return true;
 }

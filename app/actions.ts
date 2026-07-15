@@ -418,6 +418,55 @@ export async function publishNotice(formData: FormData) {
   revalidatePath("/outbox");
 }
 
+// ---------- exams ----------
+
+export async function createExam(formData: FormData) {
+  await requireUser(["principal"]);
+  const school = await getSchool();
+  const name = String(formData.get("name") ?? "").trim();
+  const maxMarks = Number(formData.get("maxMarks") ?? 100) || 100;
+  const heldOn = String(formData.get("heldOn") ?? "");
+  if (!name || !heldOn) return;
+  await db.exam.create({
+    data: { schoolId: school.id, name, maxMarks, heldOn: toUTCDate(heldOn) },
+  });
+  revalidatePath("/exams");
+}
+
+export async function saveMarks(formData: FormData) {
+  const user = await requireUser(["principal", "teacher"]);
+  const examId = String(formData.get("examId") ?? "");
+  const classRoomId = String(formData.get("classRoomId") ?? "");
+  if (!examId || !classRoomId) return;
+  if (user.role === "teacher" && user.classRoomId !== classRoomId) return;
+
+  const [students, subjects, exam] = await Promise.all([
+    db.student.findMany({ where: { classRoomId, active: true }, select: { id: true } }),
+    db.subject.findMany({ select: { id: true } }),
+    db.exam.findUnique({ where: { id: examId } }),
+  ]);
+  if (!exam) return;
+
+  const rows: { examId: string; studentId: string; subjectId: string; score: number }[] = [];
+  for (const s of students) {
+    for (const sub of subjects) {
+      const raw = formData.get(`mark_${s.id}_${sub.id}`);
+      if (raw === null || String(raw).trim() === "") continue;
+      const score = Math.max(0, Math.min(exam.maxMarks, Number(raw) || 0));
+      rows.push({ examId, studentId: s.id, subjectId: sub.id, score });
+    }
+  }
+  // replace this class's marks for the exam in one shot
+  await db.mark.deleteMany({ where: { examId, studentId: { in: students.map((s) => s.id) } } });
+  for (let i = 0; i < rows.length; i += 500) {
+    await db.mark.createMany({ data: rows.slice(i, i + 500) });
+  }
+
+  const dest = user.role === "teacher" ? "/marks" : "/exams";
+  revalidatePath(dest);
+  redirect(`${dest}?exam=${examId}${user.role === "teacher" ? "" : `&class=${classRoomId}`}&saved=${rows.length}`);
+}
+
 // ---------- outbox ----------
 
 export async function sendQueuedMessages() {

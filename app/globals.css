@@ -297,3 +297,26 @@ h1 small { color: var(--faint); font-family: var(--font-plex), sans-serif; font-
 .scrollhint i { font-style: normal; animation: hint 1.6s ease infinite; }
 @keyframes hint { 0%,100% { transform: translateY(0); opacity: 0.6; } 50% { transform: translateY(6px); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .scrollhint i { animation: none; } }
+
+/* ---------- report cards (screen + print) ---------- */
+.rc { background: #fff; color: #1C2337; border: 1px solid var(--line2); border-radius: 12px; padding: 28px 32px; margin: 0 auto 26px; max-width: 720px; }
+.rc-head { text-align: center; border-bottom: 2px solid #1C2337; padding-bottom: 14px; }
+.rc-school { font-family: var(--font-fraunces), serif; font-weight: 560; font-size: 24px; }
+.rc-school i { font-style: normal; color: #E8A020; }
+.rc-sub { color: #6b7280; font-size: 12px; margin-top: 3px; }
+.rc-title { font-size: 13px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; margin-top: 12px; }
+.rc-meta { display: flex; flex-wrap: wrap; gap: 6px 28px; padding: 14px 0; font-size: 13px; }
+.rc-meta b { font-weight: 600; }
+.rc table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.rc th { text-align: left; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #6b7280; border-bottom: 1.5px solid #1C2337; padding: 7px 8px; }
+.rc td { border-bottom: 1px solid #e5e7eb; padding: 7px 8px; font-variant-numeric: tabular-nums; }
+.rc .tot td { border-top: 1.5px solid #1C2337; border-bottom: 0; font-weight: 600; }
+.rc-foot { display: flex; justify-content: space-between; gap: 20px; margin-top: 34px; font-size: 12px; color: #6b7280; }
+.rc-foot .sig { border-top: 1px solid #9ca3af; padding-top: 6px; width: 160px; text-align: center; }
+.rc-remark { margin-top: 14px; font-size: 13px; }
+@media print {
+  .top, .noprint, .flash { display: none !important; }
+  body { background: #fff; }
+  .wrap { max-width: none; padding: 0; }
+  .rc { border: 0; border-radius: 0; page-break-after: always; margin: 0 auto; max-width: none; padding: 24px 10mm; }
+}
